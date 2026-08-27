@@ -1,0 +1,15 @@
+DROP TABLE IF EXISTS dataset_meta;
+DROP TABLE IF EXISTS batch_jobs;
+DROP TABLE IF EXISTS audit_events;
+DROP TABLE IF EXISTS dependency_call_records;
+DROP TABLE IF EXISTS configuration_versions;
+DROP TABLE IF EXISTS consumed_events;
+DROP TABLE IF EXISTS outbox_events;
+DROP TABLE IF EXISTS fulfilment_requests;
+DROP TABLE IF EXISTS inventory_reservations;
+DROP TABLE IF EXISTS inventory_items;
+DROP TABLE IF EXISTS order_status_history;
+DROP TABLE IF EXISTS order_items;
+DROP TABLE IF EXISTS orders;
+DROP TABLE IF EXISTS users;
+DROP TABLE IF EXISTS tenants;

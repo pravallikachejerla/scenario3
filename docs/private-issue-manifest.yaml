@@ -1,0 +1,182 @@
+# Private issue manifest — Scenario 3 (STAB-01 .. STAB-12).
+# Template per SOMA-GEN-QA-REPO-001 Appendix B.
+#
+# SCOPE NOTE: this single-repository delivery keeps the condition
+# tests in private/condition_test.go (excluded from the public CI
+# entry point `make test`, but physically present in this repository
+# and readable), mirroring the convention already used in
+# soma-validation-scenario-2-performance and
+# soma-validation-scenario-4-maintenance. It does not implement a
+# fully separate private-provenance workspace with private Git
+# history, clean tags and reference-repair patches outside this repo
+# (SOMA-GEN-QA-REPO-001 §5.2-5.3). Treat this manifest as a private
+# QA/Test-Engineer artefact even though it is stored here; do not
+# hand it to SOMA Genesis.
+
+- id: STAB-01
+  scenario: 3
+  title: Inconsistent database lock ordering
+  category: reliability / database
+  severity: critical
+  disclosure: qa-private
+  locations: [internal/storage/memory.go]
+  trigger: {workload: concurrent-cancel-and-fulfil-same-order, concurrency: 2}
+  expected_evidence: [lock-timeout on at least one of two concurrent workflows, private/condition_test.go TestSTAB01]
+  private_validation: {tests: [private/condition_test.go::TestSTAB01_LockOrdering]}
+  acceptable_repair: [use the same lock/row-update order in FulfilOrder as CancelOrder, or an equivalent CAS/single-transaction update]
+  invalid_repair: [serialising the whole application, disabling one workflow, suppressing the timeout error]
+  reference_repairs: {isolated: reference/isolated/STAB-01.patch, combined: reference/combined/STAB-01.patch}
+
+- id: STAB-02
+  scenario: 3
+  title: Duplicate event processing
+  category: reliability / events
+  severity: critical
+  disclosure: qa-private
+  locations: [internal/events/consumer.go]
+  trigger: {workload: redelivery-of-same-event-id}
+  expected_evidence: [business effect applied twice on redelivery via Consumer.Process]
+  private_validation: {tests: [private/condition_test.go::TestSTAB02_DuplicateEventProcessing]}
+  acceptable_repair: [durable idempotency check before applying effect, e.g. Consumer.ProcessIdempotent]
+  invalid_repair: [dropping messages without durable state, non-deterministic event IDs]
+  reference_repairs: {isolated: reference/isolated/STAB-02.patch, combined: reference/combined/STAB-02.patch}
+
+- id: STAB-03
+  scenario: 3
+  title: Stale configuration cache
+  category: reliability / configuration
+  severity: high
+  disclosure: qa-private
+  locations: [internal/configuration/config.go]
+  trigger: {workload: update-config-then-read}
+  expected_evidence: [Service.Get returns superseded value after Service.Update]
+  private_validation: {tests: [private/condition_test.go::TestSTAB03_StaleConfigurationCache]}
+  acceptable_repair: [invalidate or version-check the cache on Update, e.g. Service.Invalidate]
+  invalid_repair: [disabling caching entirely without approval, restarting the process on every change]
+  reference_repairs: {isolated: reference/isolated/STAB-03.patch, combined: reference/combined/STAB-03.patch}
+
+- id: STAB-04
+  scenario: 3
+  title: Worker-pool exhaustion during dependency timeout
+  category: reliability / capacity
+  severity: critical
+  disclosure: qa-private
+  locations: [internal/workers/pool.go, internal/dependencies/client.go]
+  trigger: {workload: slow-dependency-response, concurrency: pool-size-plus}
+  expected_evidence: [queue/active-worker growth and drain time scaling with dependency delay under private/condition_test.go TestSTAB04]
+  private_validation: {tests: [private/condition_test.go::TestSTAB04_WorkerPoolExhaustion]}
+  acceptable_repair: [bounded per-call timeout/cancellation, bulkheads, or equivalent capacity-safe design]
+  invalid_repair: [increasing worker count only, dropping work silently, removing timeout handling]
+  reference_repairs: {isolated: reference/isolated/STAB-04.patch, combined: reference/combined/STAB-04.patch}
+
+- id: STAB-05
+  scenario: 3
+  title: Batch memory retention
+  category: reliability / memory
+  severity: high
+  disclosure: qa-private
+  locations: [internal/batch/processor.go]
+  trigger: {workload: large-batch-import}
+  expected_evidence: [peak retained-object count equals batch size under RunRetainAll]
+  private_validation: {tests: [private/condition_test.go::TestSTAB05_BatchMemoryRetention]}
+  acceptable_repair: [streaming/chunked processing with bounded retention, e.g. RunStreaming]
+  invalid_repair: [reducing batch size in the workload, forcing frequent global GC, discarding required results]
+  reference_repairs: {isolated: reference/isolated/STAB-05.patch, combined: reference/combined/STAB-05.patch}
+
+- id: STAB-06
+  scenario: 3
+  title: Retry amplification
+  category: reliability / dependencies
+  severity: high
+  disclosure: qa-private
+  locations: [internal/dependencies/client.go, internal/fulfilment/service.go, internal/workers/pool.go]
+  trigger: {workload: one-retryable-dependency-failure}
+  expected_evidence: [dependency call count for one logical request multiplies across three uncoordinated retry layers]
+  private_validation: {tests: [private/condition_test.go::TestSTAB06_RetryAmplification]}
+  acceptable_repair: [centralise or coordinate retries at one layer with a bounded, shared policy]
+  invalid_repair: [disabling all retries without approval, hiding attempt metrics]
+  reference_repairs: {isolated: reference/isolated/STAB-06.patch, combined: reference/combined/STAB-06.patch}
+
+- id: STAB-07
+  scenario: 3
+  title: Environment-dependent configuration drift
+  category: reliability / deployment
+  severity: high
+  disclosure: qa-private
+  locations: [internal/configuration/config.go]
+  trigger: {workload: compare-env-1-and-env-2-profile-resolution}
+  expected_evidence: [env-2 resolves fulfilment.dependency_timeout_ms to an undocumented implicit fallback that differs from env-1 and the documented default]
+  private_validation: {tests: [private/condition_test.go::TestSTAB07_EnvironmentConfigurationDrift]}
+  acceptable_repair: [require every environment profile to state every key explicitly, or validate against the documented schema at startup]
+  invalid_repair: [hard-coding one environment, changing only the test expectation]
+  reference_repairs: {isolated: reference/isolated/STAB-07.patch, combined: reference/combined/STAB-07.patch}
+
+- id: STAB-08
+  scenario: 3
+  title: Concurrent order-state race
+  category: reliability / concurrency
+  severity: critical
+  disclosure: qa-private
+  locations: [internal/storage/memory.go]
+  trigger: {workload: concurrent-conflicting-transitions-same-order, concurrency: 2}
+  expected_evidence: [both of two mutually exclusive concurrent transitions report success under TransitionOrderUnsafe]
+  private_validation: {tests: [private/condition_test.go::TestSTAB08_ConcurrentOrderStateRace]}
+  acceptable_repair: [optimistic version/CAS guard on every transition, e.g. TransitionOrderSafe]
+  invalid_repair: [serialising every order operation globally, ignoring one transition's result]
+  reference_repairs: {isolated: reference/isolated/STAB-08.patch, combined: reference/combined/STAB-08.patch}
+
+- id: STAB-09
+  scenario: 3
+  title: Partial transaction and event inconsistency
+  category: reliability / data-integrity
+  severity: critical
+  disclosure: qa-private
+  locations: [internal/events/outbox.go]
+  trigger: {workload: injected-failure-between-state-commit-and-outbox-publish}
+  expected_evidence: [business state changed but no outbox event exists after the injected failure, under RecordStateChangeThenPublish]
+  private_validation: {tests: [private/condition_test.go::TestSTAB09_PartialTransactionEventInconsistency]}
+  acceptable_repair: [transactional outbox / equivalent atomic state+event write, e.g. RecordStateChangeAtomic]
+  invalid_repair: [ignoring missing events, manual database correction, synchronous unbounded-transaction publish]
+  reference_repairs: {isolated: reference/isolated/STAB-09.patch, combined: reference/combined/STAB-09.patch}
+
+- id: STAB-10
+  scenario: 3
+  title: Missing cancellation propagation
+  category: reliability / resource-control
+  severity: high
+  disclosure: qa-private
+  locations: [internal/workers/pool.go]
+  trigger: {workload: caller-context-cancelled-shortly-after-submit}
+  expected_evidence: [job continues to run to completion after caller cancellation under Pool.run]
+  private_validation: {tests: [private/condition_test.go::TestSTAB10_MissingCancellationPropagation]}
+  acceptable_repair: [derive the worker's execution context from the caller's context, e.g. RunWithPropagation]
+  invalid_repair: [killing the whole process, shortening all timeouts arbitrarily, leaking partial state]
+  reference_repairs: {isolated: reference/isolated/STAB-10.patch, combined: reference/combined/STAB-10.patch}
+
+- id: STAB-11
+  scenario: 3
+  title: Shared failure control across tenants
+  category: reliability / tenant-isolation
+  severity: critical
+  disclosure: qa-private
+  locations: [internal/dependencies/breaker.go, internal/application/app.go]
+  trigger: {workload: tenant-a-failures-then-tenant-b-request}
+  expected_evidence: [tenant-b blocked by tenant-a's failures under GlobalScope breaker key]
+  private_validation: {tests: [private/condition_test.go::TestSTAB11_SharedFailureControlAcrossTenants]}
+  acceptable_repair: [scope breaker/bulkhead/rate-limit state per tenant+dependency, e.g. TenantScope]
+  invalid_repair: [disabling the breaker, allowing unlimited traffic, changing tenant fixtures]
+  reference_repairs: {isolated: reference/isolated/STAB-11.patch, combined: reference/combined/STAB-11.patch}
+
+- id: STAB-12
+  scenario: 3
+  title: Emergency customisation bypasses workflow invariants
+  category: reliability / maintainability
+  severity: high
+  disclosure: qa-private
+  locations: [internal/storage/memory.go::AdminBulkSetStatus]
+  trigger: {workload: admin-bulk-status-update}
+  expected_evidence: [status changes with no audit entry and no transition validation under AdminBulkSetStatus]
+  private_validation: {tests: [private/condition_test.go::TestSTAB12_EmergencyCustomisationBypassesInvariants]}
+  acceptable_repair: [route bulk operations through the validated transition service, or add equivalent invariant checks + audit]
+  invalid_repair: [hiding the admin function, deleting audit checks, changing expected side effects]
+  reference_repairs: {isolated: reference/isolated/STAB-12.patch, combined: reference/combined/STAB-12.patch}
