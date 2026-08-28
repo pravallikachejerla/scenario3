@@ -1,0 +1,3 @@
+2026/08/28 10:35:36 scenario-3 order-management api listening on :8081
+2026/08/28 10:35:36 listen: listen tcp :8081: bind: address already in use
+exit status 1
