@@ -16,5 +16,5 @@
     {"id": "INC-2026-0818-1", "date": "2026-08-18", "severity": "critical", "business_impact": "A single struggling tenant's repeated dependency failures were followed by unrelated tenants' fulfilment requests also failing for the same period.", "observed_symptoms": "Dependency error-rate dashboard shows all tenants failing simultaneously even though only one tenant's requests were the ones actually hitting the failure condition.", "workaround": "Ops manually paged the on-call engineer for the affected dependency; no isolation change made."},
     {"id": "INC-2026-0824-1", "date": "2026-08-24", "severity": "medium", "business_impact": "An emergency bulk status correction performed by support left three orders in a state with no audit trail, complicating a later customer dispute.", "observed_symptoms": "Order status field shows the corrected value; the order's audit history has no entry for the correction.", "workaround": "Support recorded the change manually in a separate spreadsheet."}
   ],
-  "residual_discovery_targets_note": "Per SOMA-GEN-QA-REPO-001 §10.4, four of the twelve underlying conditions are intended as residual discovery targets rather than directly reported symptoms above: see docs/private-issue-manifest.yaml (QA-private) for which."
+
 }
