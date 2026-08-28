@@ -97,7 +97,7 @@ wrote testdata/fixtures/large.json (20000 orders, sha256=7bb1e638...)
 - **No independent dry run by a second Test Engineer** (§7.16) has been
   recorded.
 
-## Recommended next steps before a QA Manager sign-off
+
 
 1. In a networked environment, run `go mod tidy -tags postgres`, build
    `-tags postgres`, and capture real `pg_stat`/deadlock evidence for
