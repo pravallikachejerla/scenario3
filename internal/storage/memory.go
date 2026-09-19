@@ -263,7 +263,7 @@ func (m *MemoryStore) CancelOrder(ctx context.Context, id string) error {
 		m.releaseReservationLocked(o.TenantID, item.SKU, item.Quantity)
 		relInv()
 	}
-	_, err = m.TransitionOrderUnsafe(ctx, id, domain.OrderCancelled, "system", "cancel workflow", "workflow")
+	_, err = m.TransitionOrderSafe(ctx, id, o.Version, domain.OrderCancelled, "system", "cancel workflow", "workflow")
 	return err
 }
 
@@ -299,7 +299,7 @@ func (m *MemoryStore) FulfilOrder(ctx context.Context, id string) error {
 		relOrder()
 		relInv()
 	}
-	_, err = m.TransitionOrderUnsafe(ctx, id, domain.OrderFulfilling, "system", "fulfilment workflow", "workflow")
+	_, err = m.TransitionOrderSafe(ctx, id, o.Version, domain.OrderFulfilling, "system", "fulfilment workflow", "workflow")
 	return err
 }
 
