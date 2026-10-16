@@ -42,6 +42,7 @@ func NewService(store Store) *Service {
 // old value.
 func (s *Service) Update(c domain.ConfigVersion) {
 	s.store.PutConfig(c)
+	s.Invalidate(c.TenantID, c.Key)
 }
 
 // Get resolves a configuration value, populating the cache on first

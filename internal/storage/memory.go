@@ -269,15 +269,17 @@ func (m *MemoryStore) CancelOrder(ctx context.Context, id string) error {
 
 // FulfilOrder implements the fulfilment workflow.
 //
-// SOURCE CONDITION (STAB-01): it locks the inventory row first, then
-// the order - the reverse of CancelOrder's order-then-inventory
-// sequence. When a cancellation and a fulfilment run concurrently
-// against the same order and the same SKU, each can hold the lock the
-// other needs next, producing a deadlock-shaped wait (here bounded by
-// ctx so the test observes a timeout rather than hanging forever,
-// mirroring how PostgreSQL's deadlock detector aborts one
-// transaction).
+// WAVE-1 REPAIR (F-01): the lock acquisition order is now
+// order-then-inventory, matching CancelOrder.
 func (m *MemoryStore) FulfilOrder(ctx context.Context, id string) error {
+	relOrder, err := m.locker.Acquire(ctx, "order:"+id)
+	if err != nil {
+		return fmt.Errorf("fulfil: acquire order lock: %w", err)
+	}
+	defer relOrder()
+	if LockAcquireGap > 0 {
+		time.Sleep(LockAcquireGap)
+	}
 	o, err := m.GetOrder(ctx, id)
 	if err != nil {
 		return err
@@ -287,16 +289,7 @@ func (m *MemoryStore) FulfilOrder(ctx context.Context, id string) error {
 		if err != nil {
 			return fmt.Errorf("fulfil: acquire inventory lock for %s: %w", item.SKU, err)
 		}
-		if LockAcquireGap > 0 {
-			time.Sleep(LockAcquireGap)
-		}
-		relOrder, err := m.locker.Acquire(ctx, "order:"+id)
-		if err != nil {
-			relInv()
-			return fmt.Errorf("fulfil: acquire order lock: %w", err)
-		}
 		m.commitReservationLocked(o.TenantID, item.SKU, item.Quantity)
-		relOrder()
 		relInv()
 	}
 	_, err = m.TransitionOrderUnsafe(ctx, id, domain.OrderFulfilling, "system", "fulfilment workflow", "workflow")

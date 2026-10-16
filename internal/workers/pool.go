@@ -40,7 +40,8 @@ type Job struct {
 // (or to the dependency's own delay) even though nothing is waiting
 // for the result any more.
 type Pool struct {
-	PoolSize int
+	PoolSize   int
+	JobTimeout time.Duration
 
 	queue   chan Job
 	wg      sync.WaitGroup
@@ -51,7 +52,11 @@ type Pool struct {
 }
 
 func NewPool(size int) *Pool {
-	return &Pool{PoolSize: size, queue: make(chan Job, 100000)}
+	return &Pool{PoolSize: size, JobTimeout: 30 * time.Second, queue: make(chan Job, 100000)}
+}
+
+func (p *Pool) SetJobTimeout(d time.Duration) {
+	p.JobTimeout = d
 }
 
 func (p *Pool) Start() {
@@ -69,8 +74,16 @@ func (p *Pool) run() {
 	for job := range p.queue {
 		atomic.AddInt32(&p.queued, -1)
 		atomic.AddInt32(&p.active, 1)
-		// Deliberately not: ctx, cancel := context.WithCancel(job.Ctx)
-		_ = job.Run(context.Background())
+		ctx := job.Ctx
+		if ctx == nil {
+			ctx = context.Background()
+		}
+		if p.JobTimeout > 0 {
+			var cancel context.CancelFunc
+			ctx, cancel = context.WithTimeout(ctx, p.JobTimeout)
+			defer cancel()
+		}
+		_ = job.Run(ctx)
 		atomic.AddInt32(&p.active, -1)
 	}
 }
