@@ -19,6 +19,7 @@ import (
 
 	"github.com/soma-genesis/scenario-3-order-stability/internal/application"
 	"github.com/soma-genesis/scenario-3-order-stability/internal/domain"
+	"github.com/soma-genesis/scenario-3-order-stability/internal/events"
 	"github.com/soma-genesis/scenario-3-order-stability/internal/httpapi"
 	"github.com/soma-genesis/scenario-3-order-stability/internal/observability"
 	"github.com/soma-genesis/scenario-3-order-stability/internal/storage"
@@ -37,6 +38,14 @@ func main() {
 	}
 	app := application.New(store, m, identity)
 	app.SandboxMode = getenv("APP_SANDBOX_MODE", "true") == "true"
+	// First-wave (F-02): wire the durable idempotency primitive.
+	// The effect function increments the store's effect counter so
+	// the regression test can prove the effect was applied exactly
+	// once across a redelivery.
+	app.IdempotentConsumer = events.NewIdempotentConsumer(store, func(ev events.InboundEvent) error {
+		store.IncEffectCount(ev.EventID)
+		return nil
+	})
 	defer app.Pool.Close()
 
 	s := httpapi.New(app)

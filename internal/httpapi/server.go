@@ -7,12 +7,14 @@ package httpapi
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"time"
 
 	"github.com/soma-genesis/scenario-3-order-stability/internal/application"
 	"github.com/soma-genesis/scenario-3-order-stability/internal/dependencies"
 	"github.com/soma-genesis/scenario-3-order-stability/internal/domain"
+	"github.com/soma-genesis/scenario-3-order-stability/internal/events"
 )
 
 func New(app *application.App) http.Handler {
@@ -49,6 +51,11 @@ func New(app *application.App) http.Handler {
 	mux.HandleFunc("GET /api/v1/workers/status", workerStatus(app))
 	// Sandbox-only failure-injection control surface (see App.SandboxMode).
 	mux.HandleFunc("POST /api/v1/admin/simulators/{dependency}/{tenant}", configureSimulator(app))
+	// First-wave (F-02) evidence endpoint: drive the idempotent
+	// consumer with a synthetic event and return the effect count
+	// for that EventID. Sandbox-only.
+	mux.HandleFunc("POST /api/v1/admin/events/deliver", deliverEvent(app))
+	mux.HandleFunc("GET /api/v1/admin/events/effect-count/{eventID}", effectCount(app))
 
 	return recoverer(requestSizeLimit(1<<20, mux))
 }
@@ -263,6 +270,68 @@ func actor(r *http.Request) string {
 		return v
 	}
 	return "unknown"
+}
+
+type deliverEventRequest struct {
+	EventID string `json:"event_id"`
+	OrderID string `json:"order_id"`
+	Type    string `json:"type"`
+}
+
+func deliverEvent(app *application.App) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if !app.SandboxMode {
+			writeErr(w, http.StatusForbidden, domain.ErrDependencyFailed)
+			return
+		}
+		var req deliverEventRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			writeErr(w, http.StatusBadRequest, err)
+			return
+		}
+		if req.EventID == "" {
+			writeErr(w, http.StatusBadRequest, fmt.Errorf("event_id is required"))
+			return
+		}
+		effect := func(ev events.InboundEvent) error {
+			app.Store.IncEffectCount(ev.EventID)
+			return nil
+		}
+		if app.IdempotentConsumer != nil {
+			if err := app.IdempotentConsumer.Process(events.InboundEvent{
+				EventID: req.EventID, OrderID: req.OrderID, Type: req.Type,
+			}); err != nil {
+				writeErr(w, http.StatusInternalServerError, err)
+				return
+			}
+		} else {
+			effect(events.InboundEvent{EventID: req.EventID, OrderID: req.OrderID, Type: req.Type})
+		}
+		// Also drive the baseline (non-idempotent) path so the
+		// baseline-vs-candidate comparison is observable from a
+		// single binary. The baseline path always increments the
+		// counter; the candidate path skips redeliveries.
+		app.Store.IncBaselineEffectCount(req.EventID)
+		writeJSON(w, http.StatusOK, map[string]any{
+			"event_id":            req.EventID,
+			"effect_count":        app.Store.EffectCount(req.EventID),
+			"baseline_effect_count": app.Store.BaselineEffectCount(req.EventID),
+		})
+	}
+}
+
+func effectCount(app *application.App) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if !app.SandboxMode {
+			writeErr(w, http.StatusForbidden, domain.ErrDependencyFailed)
+			return
+		}
+		eventID := r.PathValue("eventID")
+		writeJSON(w, http.StatusOK, map[string]any{
+			"event_id":     eventID,
+			"effect_count": app.Store.EffectCount(eventID),
+		})
+	}
 }
 
 func dependenciesBehaviour(req simulatorConfigRequest) dependencies.Behaviour {
