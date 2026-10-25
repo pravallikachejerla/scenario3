@@ -1,0 +1,468 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Failure Map Update and Final First-Wave Proposal — Scenario 3</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #161a22;
+    --panel-2: #1c2230;
+    --border: #2a3142;
+    --text: #e6e9ef;
+    --muted: #9aa3b2;
+    --accent: #6aa9ff;
+    --accent-2: #8be9c1;
+    --warn: #f1c453;
+    --bad: #ff7a7a;
+    --good: #7be3a3;
+    --code: #f5d77b;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; line-height: 1.55; }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 32px 24px 80px; }
+  header { border-bottom: 1px solid var(--border); padding-bottom: 20px; margin-bottom: 28px; }
+  h1 { font-size: 28px; margin: 0 0 8px; letter-spacing: -0.01em; }
+  h2 { font-size: 20px; margin: 36px 0 12px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+  h3 { font-size: 16px; margin: 24px 0 8px; color: var(--accent-2); }
+  p, li { font-size: 14.5px; }
+  .meta { color: var(--muted); font-size: 13px; }
+  .meta code { color: var(--code); }
+  .status { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; letter-spacing: 0.02em; }
+  .status.advisory { background: rgba(241,196,83,0.15); color: var(--warn); border: 1px solid rgba(241,196,83,0.4); }
+  .status.repaired { background: rgba(123,227,163,0.12); color: var(--good); border: 1px solid rgba(123,227,163,0.4); }
+  .status.open { background: rgba(255,122,122,0.12); color: var(--bad); border: 1px solid rgba(255,122,122,0.4); }
+  .status.p1 { background: rgba(255,122,122,0.18); color: var(--bad); border: 1px solid rgba(255,122,122,0.5); }
+  .status.p2 { background: rgba(241,196,83,0.18); color: var(--warn); border: 1px solid rgba(241,196,83,0.5); }
+  .status.p3 { background: rgba(106,169,255,0.15); color: var(--accent); border: 1px solid rgba(106,169,255,0.4); }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0 20px; font-size: 13px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { background: var(--panel-2); color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
+  tr:hover td { background: rgba(255,255,255,0.02); }
+  td code, li code { background: var(--panel-2); color: var(--code); padding: 1px 5px; border-radius: 3px; font-size: 12.5px; }
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 16px 18px; margin: 14px 0; }
+  .panel.warn { border-color: rgba(241,196,83,0.4); background: rgba(241,196,83,0.05); }
+  .panel.note { border-color: rgba(106,169,255,0.4); background: rgba(106,169,255,0.05); }
+  ol, ul { padding-left: 22px; }
+  ol li, ul li { margin: 4px 0; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; margin: 12px 0; }
+  .card { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; }
+  .card h4 { margin: 0 0 6px; font-size: 14px; color: var(--accent-2); }
+  .card p { margin: 4px 0; font-size: 13px; color: var(--muted); }
+  .card p strong { color: var(--text); }
+  footer { margin-top: 48px; padding-top: 16px; border-top: 1px solid var(--border); color: var(--muted); font-size: 12px; }
+  a { color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>Failure Map Update and Final First-Wave Proposal</h1>
+  <p class="meta">
+    Scenario 3 Order Management and Fulfilment Platform &middot;
+    Repository <code>pravallikachejerla/scenario3</code> (branch <code>main</code>) &middot;
+    Working branch <code>genesis/2c74a626-5ea9-4e88-af9a-ad276f64c250-proj-106d60bd-be46-4990-a1d1-21f3913576ed</code>
+  </p>
+  <p class="meta">
+    Run identity: session <code>106d60bd-be46-4990-a1d1-21f3913576ed</code>, turn <code>f8a28227-92c7-41ce-91f8-2f97ae1a2f64</code> &middot;
+    Analysis date 2026-10-25T16:58Z
+  </p>
+  <p>
+    <span class="status advisory">Advisory only</span>
+    <span class="status open">No code changed</span>
+    <span class="status open">No repository promotion</span>
+    <span class="status open">No implementation</span>
+  </p>
+</header>
+
+<h2>1. Constraints (re-stated, applied throughout)</h2>
+<ol>
+  <li>No big-bang rewrite.</li>
+  <li>Platform must remain operational during stabilisation.</li>
+  <li>Public interfaces must remain compatible in wave 1.</li>
+  <li>Database-schema changes require separate approval.</li>
+  <li>Prioritise recurring high-severity incidents with reproducible evidence.</li>
+  <li>Historical incident paths become regression tests where feasible.</li>
+  <li>Failure injection only inside the sandbox.</li>
+  <li>Unreproduced incidents stay classified as unconfirmed.</li>
+  <li>Every wave has its own GO/NO-GO criteria and rollback.</li>
+  <li>No repository promotion is authorised.</li>
+</ol>
+<p>Every proposed wave-1 item below is a non-schema, interface-preserving, in-sandbox-testable change; every item is grounded in a reproduced or source-confirmed condition; every item has its own GO/NO-GO and rollback boundary.</p>
+
+<h2>2. Updated Failure Map</h2>
+
+<h3>2.1 Condition register (12 conditions, 4 already repaired in baseline)</h3>
+<table>
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Underlying condition</th>
+      <th>Source location (file:line)</th>
+      <th>Linked incident</th>
+      <th>Reproduced?</th>
+      <th>Classification</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>STAB-01</code></td>
+      <td>Lock-order inversion between CancelOrder and FulfilOrder</td>
+      <td><code>internal/storage/memory.go:244-297</code></td>
+      <td>INC-2026-0603-1</td>
+      <td>No &mdash; F-01 already applied (FulfilOrder now order&rarr;inventory, matching CancelOrder)</td>
+      <td><span class="status repaired">Confirmed (repaired)</span></td>
+    </tr>
+    <tr>
+      <td><code>STAB-02</code></td>
+      <td>Non-idempotent inbound event consumer</td>
+      <td><code>internal/events/consumer.go:48</code> (<code>Process</code> applies effect before <code>HasConsumed</code>); corrected primitive <code>ProcessIdempotent</code> at line 65 is not wired</td>
+      <td>INC-2026-0611-1</td>
+      <td>Yes (in source) &mdash; <code>Process</code> calls <code>c.effect(ev)</code> before <code>c.store.MarkConsumed</code></td>
+      <td><span class="status open">Confirmed (open)</span></td>
+    </tr>
+    <tr>
+      <td><code>STAB-03</code></td>
+      <td>Configuration cache not invalidated on Update</td>
+      <td><code>internal/configuration/config.go:43-46</code> (<code>Update</code> calls <code>Invalidate</code>); <code>Invalidate</code> at line 73 deletes the cache entry</td>
+      <td>INC-2026-0619-1</td>
+      <td>No &mdash; F-03 already applied (<code>Update</code> calls <code>Invalidate</code>); wave-1 tests <code>TestWave1_F03_ConfigUpdateInvalidatesCache</code> and <code>..._HTTP</code> pass</td>
+      <td><span class="status repaired">Confirmed (repaired)</span></td>
+    </tr>
+    <tr>
+      <td><code>STAB-04</code></td>
+      <td>Worker pool has no bounded per-job timeout; dependency client has no per-attempt deadline</td>
+      <td><code>internal/workers/pool.go:90-104</code> (<code>run</code> honours <code>JobTimeout</code> only if set; default 30s); <code>internal/dependencies/client.go:47-79</code> (<code>Call</code> uses ctx as-is)</td>
+      <td>INC-2026-0627-1, INC-2026-0712-1</td>
+      <td>Yes (in source) &mdash; <code>Pool.JobTimeout</code> defaults to 30s and is not derived from a config key; <code>Client.Call</code> does not wrap ctx with a per-attempt deadline</td>
+      <td><span class="status open">Confirmed (open)</span></td>
+    </tr>
+    <tr>
+      <td><code>STAB-05</code></td>
+      <td>Batch processor retains every record's payload until the batch finishes</td>
+      <td><code>internal/batch/processor.go:30-43</code> (<code>RunRetainAll</code> appends every payload to <code>retained</code> and never releases); corrected primitive <code>RunStreaming</code> at line 50 is not wired</td>
+      <td>INC-2026-0705-1</td>
+      <td>Yes (in source) &mdash; <code>retained = append(retained, r.Payload)</code> with no release path</td>
+      <td><span class="status open">Confirmed (open)</span></td>
+    </tr>
+    <tr>
+      <td><code>STAB-06</code></td>
+      <td>Three independent retry layers (client, service, worker) with no shared budget</td>
+      <td><code>internal/dependencies/client.go:47-79</code> (layer 1, <code>RetryMax=3</code>); <code>internal/fulfilment/service.go:30-44</code> (layer 2, <code>ServiceRetryMax=2</code>); <code>internal/workers/pool.go:107-117</code> (layer 3, <code>RunWithRetry</code>)</td>
+      <td>INC-2026-0712-1</td>
+      <td>Yes (in source) &mdash; three retry loops, no shared budget; one failure can fan out to 3&times;2&times;N calls</td>
+      <td><span class="status open">Confirmed (open)</span></td>
+    </tr>
+    <tr>
+      <td><code>STAB-07</code></td>
+      <td>Environment profile loader falls back to an undocumented implicit default for missing keys</td>
+      <td><code>internal/configuration/config.go:117-132</code> (<code>Load</code> returns <code>implicitFallbackTimeoutMS = "8000"</code> when <code>fulfilment.dependency_timeout_ms</code> is missing; <code>EnvTwo</code> at line 112 omits that key)</td>
+      <td>INC-2026-0720-1</td>
+      <td>Yes (in source) &mdash; <code>EnvTwo.Values</code> lacks the key; <code>Load</code> returns <code>8000</code> instead of the documented <code>2000</code></td>
+      <td><span class="status open">Confirmed (open)</span></td>
+    </tr>
+    <tr>
+      <td><code>STAB-08</code></td>
+      <td>Order transition is a non-atomic read-decide-write with no version/CAS guard</td>
+      <td><code>internal/storage/memory.go:139-179</code> (<code>TransitionOrderUnsafe</code> reads under RLock, releases, sleeps in <code>TransitionRaceWindow</code>, then writes under Lock); corrected primitive <code>TransitionOrderSafe</code> at line 186 is not wired</td>
+      <td>INC-2026-0728-1</td>
+      <td>Yes (in source) &mdash; read and write are separate critical sections; <code>TransitionOrderSafe</code> exists but is unused</td>
+      <td><span class="status open">Confirmed (open)</span></td>
+    </tr>
+    <tr>
+      <td><code>STAB-09</code></td>
+      <td>State mutation and outbox append are not one atomic unit</td>
+      <td><code>internal/events/outbox.go:38-66</code> (<code>RecordStateChangeThenPublish</code> calls <code>applyState</code> then <code>AppendOutbox</code> as two steps; <code>fail</code> hook models the gap); corrected primitive <code>RecordStateChangeAtomic</code> at line 69 is not wired</td>
+      <td>INC-2026-0805-1</td>
+      <td>Yes (in source) &mdash; two-step write with an injectable failure window between them</td>
+      <td><span class="status open">Confirmed (open)</span></td>
+    </tr>
+    <tr>
+      <td><code>STAB-10</code></td>
+      <td>Worker pool invokes <code>job.Run</code> with <code>context.Background()</code> rather than a context derived from <code>job.Ctx</code></td>
+      <td><code>internal/workers/pool.go:90-104</code> (<code>run</code> derives ctx from <code>job.Ctx</code> if non-nil, else <code>context.Background()</code>); corrected primitive <code>RunWithPropagation</code> at line 120 is not wired</td>
+      <td>INC-2026-0812-1</td>
+      <td>No &mdash; F-10 already applied (<code>run</code> honours <code>job.Ctx</code>); wave-1 test <code>TestWave1_F10_CallerContextCancellation</code> passes</td>
+      <td><span class="status repaired">Confirmed (repaired)</span></td>
+    </tr>
+    <tr>
+      <td><code>STAB-11</code></td>
+      <td>Circuit breaker uses a global scope, not a per-tenant scope</td>
+      <td><code>internal/application/app.go:67-72</code> (<code>fulfilSvc</code> is constructed with <code>GlobalScope(deps.Shipping.Name())</code>); <code>internal/dependencies/breaker.go</code> exposes <code>TenantScope</code> (corrected)</td>
+      <td>INC-2026-0818-1</td>
+      <td>Yes (in source) &mdash; <code>ScopeFn</code> returns the global scope; one tenant's failures trip the breaker for every tenant</td>
+      <td><span class="status open">Confirmed (open)</span></td>
+    </tr>
+    <tr>
+      <td><code>STAB-12</code></td>
+      <td>Admin bulk-status path bypasses transition validation, audit, and version bump</td>
+      <td><code>internal/storage/memory.go:221-238</code> (<code>AdminBulkSetStatus</code> writes <code>o.Status = to</code> directly with no <code>IsValidTransition</code> check, no audit, no version bump)</td>
+      <td>INC-2026-0824-1</td>
+      <td>Yes (in source) &mdash; direct field write, no audit append, no history entry</td>
+      <td><span class="status open">Confirmed (open)</span></td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>2.2 Evidence correlation (per incident)</h3>
+<table>
+  <thead>
+    <tr>
+      <th>Incident</th>
+      <th>Source evidence</th>
+      <th>Configuration evidence</th>
+      <th>Infrastructure / deployment evidence</th>
+      <th>Data / dependency evidence</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td>INC-2026-0603-1</td><td><code>internal/storage/memory.go:244-297</code> (lock-order inversion, now repaired)</td><td>n/a</td><td>n/a</td><td>n/a</td></tr>
+    <tr><td>INC-2026-0611-1</td><td><code>internal/events/consumer.go:48</code> (effect before <code>MarkConsumed</code>)</td><td>n/a</td><td>broker redelivery window in incident timeline</td><td>n/a</td></tr>
+    <tr><td>INC-2026-0619-1</td><td><code>internal/configuration/config.go:43-46</code> (Update&rarr;Invalidate, now repaired)</td><td>routing key change in audit log</td><td>service restart required to pick up change</td><td>n/a</td></tr>
+    <tr><td>INC-2026-0627-1</td><td><code>internal/workers/pool.go:90-104</code> (no per-job timeout by default)</td><td><code>JobTimeout</code> not derived from a config key</td><td>worker pool metrics: active pegged, queue growing</td><td>shipping provider slow window</td></tr>
+    <tr><td>INC-2026-0705-1</td><td><code>internal/batch/processor.go:30-43</code> (retain-all)</td><td>n/a</td><td>process memory climbs near-linearly</td><td>batch size growing quarter-over-quarter</td></tr>
+    <tr><td>INC-2026-0712-1</td><td><code>internal/dependencies/client.go:47-79</code> + <code>internal/fulfilment/service.go:30-44</code> + <code>internal/workers/pool.go:107-117</code> (three retry layers)</td><td>n/a</td><td>dependency call count &gg; request count</td><td>provider rate-limit triggered</td></tr>
+    <tr><td>INC-2026-0720-1</td><td><code>internal/configuration/config.go:112-115</code> (<code>EnvTwo</code> omits <code>fulfilment.dependency_timeout_ms</code>)</td><td>deployment manifests differ by one key</td><td>staging vs pre-prod behaviour diverges</td><td>n/a</td></tr>
+    <tr><td>INC-2026-0728-1</td><td><code>internal/storage/memory.go:139-179</code> (non-atomic transition)</td><td>n/a</td><td>n/a</td><td>n/a</td></tr>
+    <tr><td>INC-2026-0805-1</td><td><code>internal/events/outbox.go:38-66</code> (two-step state+outbox)</td><td>n/a</td><td>deployment restart during processing</td><td>outbox event missing for one order</td></tr>
+    <tr><td>INC-2026-0812-1</td><td><code>internal/workers/pool.go:90-104</code> (now honours <code>job.Ctx</code>, repaired)</td><td>n/a</td><td>request trace shows backend work continues after client disconnect</td><td>n/a</td></tr>
+    <tr><td>INC-2026-0818-1</td><td><code>internal/application/app.go:67-72</code> (global breaker scope)</td><td>n/a</td><td>dependency error-rate dashboard shows all tenants failing</td><td>one tenant's repeated failures</td></tr>
+    <tr><td>INC-2026-0824-1</td><td><code>internal/storage/memory.go:221-238</code> (admin bulk bypass)</td><td>n/a</td><td>n/a</td><td>audit history has no entry for the correction</td></tr>
+  </tbody>
+</table>
+
+<h3>2.3 Missing evidence</h3>
+<ul>
+  <li><strong>No production traces or logs in the sandbox.</strong> The incident register is the only operational evidence; the sandbox has no replayable trace/log/profiling data. Wave-1 evaluators that depend on traces must use the sandbox's own injected traces, not production traces.</li>
+  <li><strong>No deployment-history artefact.</strong> The <code>docker-compose.yml</code> and <code>deploy/Dockerfile</code> are present, but there is no record of which environment profile was active for each historical incident. STAB-07's reproduction is therefore source-only, not deployment-confirmed.</li>
+  <li><strong>No dependency-side evidence.</strong> The dependency simulators are in-process; there is no record of what the real payment/shipping/inventory providers returned during the historical incidents. STAB-06's "three retry layers" finding is source-confirmed, not provider-confirmed.</li>
+  <li><strong>No schema-migration history.</strong> <code>migrations/0001_init.sql</code> exists but there is no record of which migrations ran in which environment. Any wave that touches the schema (none proposed for wave 1) would need this evidence first.</li>
+</ul>
+
+<h3>2.4 Prioritisation (severity &times; frequency &times; business impact &times; reproducibility &times; blast radius &times; change risk)</h3>
+<table>
+  <thead>
+    <tr>
+      <th>Rank</th>
+      <th>ID</th>
+      <th>Severity</th>
+      <th>Frequency</th>
+      <th>Business impact</th>
+      <th>Reproducibility</th>
+      <th>Blast radius</th>
+      <th>Change risk</th>
+      <th>Composite priority</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td>1</td><td><code>STAB-11</code></td><td>critical</td><td>1/90d</td><td>all tenants</td><td>source-confirmed</td><td>all tenants</td><td>low</td><td><span class="status p1">P1</span></td></tr>
+    <tr><td>2</td><td><code>STAB-08</code></td><td>critical</td><td>1/90d</td><td>data integrity</td><td>source-confirmed</td><td>1 customer / event, integrity class</td><td>medium</td><td><span class="status p1">P1</span></td></tr>
+    <tr><td>3</td><td><code>STAB-04</code></td><td>critical</td><td>1-2/90d</td><td>30+ orders / event</td><td>source-confirmed</td><td>full queue depth</td><td>low</td><td><span class="status p1">P1</span></td></tr>
+    <tr><td>4</td><td><code>STAB-02</code></td><td>high</td><td>1/90d</td><td>1 customer / event, unbounded</td><td>source-confirmed</td><td>1 customer / event</td><td>low</td><td><span class="status p2">P2</span></td></tr>
+    <tr><td>5</td><td><code>STAB-05</code></td><td>high</td><td>1/90d, growing</td><td>OOM kill</td><td>source-confirmed</td><td>1 batch / event</td><td>low</td><td><span class="status p2">P2</span></td></tr>
+    <tr><td>6</td><td><code>STAB-09</code></td><td>high</td><td>1/90d</td><td>silent loss of downstream notification</td><td>source-confirmed</td><td>1 order / event</td><td>medium</td><td><span class="status p2">P2</span></td></tr>
+    <tr><td>7</td><td><code>STAB-06</code></td><td>medium</td><td>1/90d</td><td>provider rate-limit, cross-tenant amplification</td><td>source-confirmed</td><td>cross-tenant</td><td>medium</td><td><span class="status p3">P3</span></td></tr>
+    <tr><td>8</td><td><code>STAB-07</code></td><td>medium</td><td>1/90d</td><td>silent behaviour drift</td><td>source-confirmed</td><td>1 environment / event</td><td>low</td><td><span class="status p3">P3</span></td></tr>
+    <tr><td>9</td><td><code>STAB-12</code></td><td>medium</td><td>1/90d</td><td>audit-trail gap</td><td>source-confirmed</td><td>1 batch / event</td><td>medium</td><td><span class="status p3">P3</span></td></tr>
+  </tbody>
+</table>
+<p>The four already-repaired conditions (STAB-01, STAB-03, STAB-10, and the F-04 bounded-job-timeout half of STAB-04) are not re-prioritised; they remain in the regression suite.</p>
+
+<h2>3. Final First-Wave Proposal</h2>
+
+<h3>3.1 Wave 1 scope (final)</h3>
+<p>Wave 1 contains <strong>five items</strong>, all of which satisfy the constraints:</p>
+<ul>
+  <li><strong>No schema change.</strong> None of the five items touches <code>migrations/0001_init.sql</code> or the PostgreSQL driver. The PostgreSQL transactional-outbox fix for STAB-09 is explicitly deferred to wave 2 (it requires a schema change for the outbox table to live in the same transaction as the business-state write).</li>
+  <li><strong>Public interfaces unchanged.</strong> All five items are internal-primitive swaps (<code>Process</code> &rarr; <code>ProcessIdempotent</code>, <code>RunRetainAll</code> &rarr; <code>RunStreaming</code>, <code>TransitionOrderUnsafe</code> &rarr; <code>TransitionOrderSafe</code>, <code>GlobalScope</code> &rarr; <code>TenantScope</code>, <code>JobTimeout</code> derived from a config key). The HTTP surface in <code>internal/httpapi/server.go</code> is untouched.</li>
+  <li><strong>Platform remains operational.</strong> Each item is independently revertible; no item requires downtime.</li>
+  <li><strong>Failure injection stays in the sandbox.</strong> All five items are exercised by the existing <code>tests/public/wave1_repair_test.go</code> pattern (sandbox-only <code>httptest.NewServer</code> + <code>app.SandboxMode = true</code>).</li>
+  <li><strong>Historical incident paths become regression tests.</strong> Each item has a named regression test that reproduces the historical incident path.</li>
+</ul>
+
+<table>
+  <thead>
+    <tr>
+      <th>Wave-1 item</th>
+      <th>Condition</th>
+      <th>Linked incident</th>
+      <th>Repair shape</th>
+      <th>Regression test</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>W1-1</strong></td>
+      <td>STAB-02</td>
+      <td>INC-2026-0611-1</td>
+      <td>Route inbound delivery through <code>Consumer.ProcessIdempotent</code> instead of <code>Consumer.Process</code></td>
+      <td>New <code>TestWave1_F02_DuplicateEventIdempotent</code> in <code>tests/public/wave1_repair_test.go</code>: deliver the same <code>EventID</code> twice, assert the effect runs once and <code>HasConsumed</code> returns true after the first call</td>
+    </tr>
+    <tr>
+      <td><strong>W1-2</strong></td>
+      <td>STAB-05</td>
+      <td>INC-2026-0705-1</td>
+      <td>Route batch execution through <code>batch.RunStreaming</code> with a bounded window instead of <code>batch.RunRetainAll</code></td>
+      <td>New <code>TestWave1_F05_BatchStreamingRetention</code>: feed N records, assert <code>RetentionProbe</code> never observes more than <code>windowSize</code> retained payloads</td>
+    </tr>
+    <tr>
+      <td><strong>W1-3</strong></td>
+      <td>STAB-08</td>
+      <td>INC-2026-0728-1</td>
+      <td>Route order transitions through <code>TransitionOrderSafe</code> (CAS on <code>Version</code>) instead of <code>TransitionOrderUnsafe</code>; have callers pass the version they read</td>
+      <td>New <code>TestWave1_F08_ConcurrentApproveCancelLosesNoUpdate</code>: two goroutines read the same version, both attempt a transition, assert exactly one succeeds and the other gets <code>ErrConcurrentUpdate</code></td>
+    </tr>
+    <tr>
+      <td><strong>W1-4</strong></td>
+      <td>STAB-11</td>
+      <td>INC-2026-0818-1</td>
+      <td>Change <code>fulfilSvc.ScopeFn</code> in <code>internal/application/app.go:67-72</code> to return <code>dependencies.TenantScope(deps.Shipping.Name(), tenantID)</code> instead of <code>GlobalScope(...)</code></td>
+      <td>New <code>TestWave1_F11_TenantScopedBreaker</code>: trip the breaker for tenant A, assert tenant B's calls still succeed</td>
+    </tr>
+    <tr>
+      <td><strong>W1-5</strong></td>
+      <td>STAB-04 (config half)</td>
+      <td>INC-2026-0627-1</td>
+      <td>Derive <code>Pool.JobTimeout</code> from the <code>fulfilment.dependency_timeout_ms</code> config key at startup, so the timeout is no longer a hard-coded 30s default</td>
+      <td>New <code>TestWave1_F04b_JobTimeoutFromConfig</code>: set the config key to 100ms, submit a 2s job, assert the job returns within ~150ms with <code>context.DeadlineExceeded</code></td>
+    </tr>
+  </tbody>
+</table>
+
+<p><strong>Items deliberately deferred out of wave 1:</strong></p>
+<ul>
+  <li><strong>STAB-06 (three retry layers).</strong> Touches retry policy across three packages; needs a shared retry-budget design and a per-tenant budget decision. Wave 2.</li>
+  <li><strong>STAB-07 (implicit fallback).</strong> Touches the environment-profile loader; needs a decision on whether to fail-closed on missing keys or to require every profile to enumerate every key. Wave 2.</li>
+  <li><strong>STAB-09 (transactional outbox).</strong> Requires a schema change (outbox table in the same transaction as the business-state write) and is therefore out of scope for wave 1 under constraint 4. Wave 2, with separate schema approval.</li>
+  <li><strong>STAB-12 (admin bulk bypass).</strong> Touches the admin path and needs a policy decision on whether the bypass should exist at all. Wave 3.</li>
+</ul>
+
+<h3>3.2 Evaluators and acceptance criteria (per wave-1 item)</h3>
+<p>Each item has its own GO/NO-GO gate. A wave-1 GO requires all five gates to pass.</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Item</th>
+      <th>Evaluator (in-sandbox)</th>
+      <th>Acceptance criteria (GO)</th>
+      <th>NO-GO trigger</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>W1-1</strong></td>
+      <td><code>go test ./tests/public/... -run TestWave1_F02 -count=1</code></td>
+      <td>Test passes; existing 19 public tests still pass; <code>go vet ./...</code> clean</td>
+      <td>Test fails; any existing public test regresses</td>
+    </tr>
+    <tr>
+      <td><strong>W1-2</strong></td>
+      <td><code>go test ./tests/public/... -run TestWave1_F05 -count=1</code></td>
+      <td>Test passes; <code>RetentionProbe</code> max &le; <code>windowSize</code>; existing tests still pass</td>
+      <td>Test fails; retention exceeds window</td>
+    </tr>
+    <tr>
+      <td><strong>W1-3</strong></td>
+      <td><code>go test ./tests/public/... -run TestWave1_F08 -count=1</code></td>
+      <td>Test passes; exactly one of two concurrent transitions succeeds; the other returns <code>ErrConcurrentUpdate</code>; existing tests still pass</td>
+      <td>Test fails; both transitions succeed (lost update)</td>
+    </tr>
+    <tr>
+      <td><strong>W1-4</strong></td>
+      <td><code>go test ./tests/public/... -run TestWave1_F11 -count=1</code></td>
+      <td>Test passes; tenant A's breaker trip does not affect tenant B; existing tests still pass</td>
+      <td>Test fails; tenant B's calls are blocked</td>
+    </tr>
+    <tr>
+      <td><strong>W1-5</strong></td>
+      <td><code>go test ./tests/public/... -run TestWave1_F04b -count=1</code></td>
+      <td>Test passes; job returns within ~150ms when config sets timeout to 100ms; existing tests still pass</td>
+      <td>Test fails; job runs to full 2s</td>
+    </tr>
+  </tbody>
+</table>
+
+<p><strong>Wave-1 GO gate (composite):</strong> all five item-level gates pass AND the full public suite (<code>go test ./tests/public/... -count=1</code>) reports 24/24 PASS (19 existing + 5 new) AND <code>go vet ./...</code> is clean AND the API binary still builds (<code>go build -o /tmp/api ./cmd/api</code>) AND the worker binary still builds (<code>go build -o /tmp/worker ./cmd/worker</code>).</p>
+
+<p><strong>Wave-1 NO-GO trigger (any one):</strong> any item-level gate fails; any existing public test regresses; <code>go vet</code> reports a finding; either binary fails to build.</p>
+
+<h3>3.3 Rollback boundaries (per wave-1 item)</h3>
+<p>Each item is independently revertible by a single commit that restores the prior primitive. No item requires a coordinated multi-file revert.</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Item</th>
+      <th>Rollback shape</th>
+      <th>Rollback risk</th>
+      <th>Rollback evidence</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>W1-1</strong></td>
+      <td>Revert the one call site that switched from <code>Process</code> to <code>ProcessIdempotent</code></td>
+      <td>low &mdash; restores the prior duplicate-event behaviour, which is the known-bad state, not a new bad state</td>
+      <td><code>go test ./tests/public/... -count=1</code> returns to 19/19 (the new W1-1 test fails, which is the expected signal)</td>
+    </tr>
+    <tr>
+      <td><strong>W1-2</strong></td>
+      <td>Revert the one call site that switched from <code>RunRetainAll</code> to <code>RunStreaming</code></td>
+      <td>low &mdash; restores the prior OOM behaviour, which is the known-bad state</td>
+      <td><code>go test ./tests/public/... -count=1</code> returns to 19/19</td>
+    </tr>
+    <tr>
+      <td><strong>W1-3</strong></td>
+      <td>Revert the call sites that switched from <code>TransitionOrderUnsafe</code> to <code>TransitionOrderSafe</code></td>
+      <td>medium &mdash; restores the prior lost-update behaviour; only safe if no concurrent transitions are in flight</td>
+      <td><code>go test ./tests/public/... -count=1</code> returns to 19/19; concurrent-transition test fails as expected</td>
+    </tr>
+    <tr>
+      <td><strong>W1-4</strong></td>
+      <td>Revert the one-line scope change in <code>internal/application/app.go</code></td>
+      <td>low &mdash; restores the prior global-scope behaviour, which is the known-bad state</td>
+      <td><code>go test ./tests/public/... -count=1</code> returns to 19/19</td>
+    </tr>
+    <tr>
+      <td><strong>W1-5</strong></td>
+      <td>Revert the config-derivation change; restore the hard-coded 30s default</td>
+      <td>low &mdash; restores the prior unbounded-timeout behaviour</td>
+      <td><code>go test ./tests/public/... -count=1</code> returns to 19/19</td>
+    </tr>
+  </tbody>
+</table>
+
+<p><strong>Wave-1 rollback boundary:</strong> the wave-1 commit set is a single feature branch off <code>main</code>. A wave-1 rollback is <code>git revert</code> of the merge commit (or, if not yet merged, deletion of the feature branch). No database migration is involved, so there is no schema rollback.</p>
+
+<h3>3.4 What wave 1 does NOT do (explicit non-goals)</h3>
+<ul>
+  <li>Does not change the public HTTP API.</li>
+  <li>Does not change the database schema.</li>
+  <li>Does not promote the repository.</li>
+  <li>Does not touch the four already-repaired conditions (STAB-01, STAB-03, STAB-10, F-04 half of STAB-04) &mdash; they remain in the regression suite as-is.</li>
+  <li>Does not address STAB-06, STAB-07, STAB-09, or STAB-12 &mdash; those are wave 2 or wave 3.</li>
+  <li>Does not introduce new failure-injection surfaces; it uses the existing <code>POST /api/v1/admin/simulators/...</code> endpoint, which is already gated by <code>app.SandboxMode</code>.</li>
+  <li>Does not run in production; all evaluators run inside the sandbox.</li>
+</ul>
+
+<h2>4. What would need to become true before any one path is safe</h2>
+<div class="panel warn">
+<p>The constraints above leave a genuine, unresolved tension between three real options: (a) proceed with wave 1 as proposed, (b) defer the wave until more evidence is gathered (deployment-history, dependency-side traces, schema-migration history) before shipping, (c) request human policy guidance for the deferred items on the deferred items (STAB-06 retry budget, STAB-07 fail-closed vs enumerate-all, STAB-09 schema approval, STAB-12 admin-bypass policy). Each path has a different pre-condition that must hold before it is safe:</p>
+<ul>
+  <li><strong>Path (a) &mdash; ship wave 1 as proposed</strong> is safe only if the five item-level GO gates pass in the sandbox AND a human approver confirms that the deferred items (STAB-06, STAB-07, STAB-09, STAB-12) are acceptable to leave open for waves 2 and 3 AND no production-side evidence surfaces that contradicts the source-confirmed reproductions.</li>
+  <li><strong>Path (b) &mdash; wait for additional evidence</strong> is safe only if the missing-evidence list in &sect;2.3 is treated as a blocker rather than a known gap, AND a human approver confirms that the platform can absorb another 90 days of the open conditions (STAB-02, STAB-04, STAB-05, STAB-06, STAB-07, STAB-08, STAB-09, STAB-11, STAB-12) without further incident.</li>
+  <li><strong>Path (c) &mdash; escalate to a human decision-maker</strong> is safe only if the policy questions on the deferred items (retry budget, profile loader semantics, schema approval, admin-bypass policy) are genuinely outside the scope of what this turn can decide, AND a human approver is available to make those calls.</li>
+</ul>
+<p>Waiting or escalating is as legitimate an outcome here as acting &mdash; the unresolved tension is real, and the choice between the three paths depends on factors (production-side evidence, human policy authority, incident-tolerance appetite) that this turn cannot settle on its own.</p>
+</div>
+
+<footer>
+  <p>Advisory report. No code changed. No repository promotion. No implementation. Grounded in files read this run: <code>docs/operational-evidence/incident-register.json</code>, <code>tests/public/wave1_repair_test.go</code>, <code>internal/configuration/config.go</code>, <code>internal/batch/processor.go</code>, <code>internal/dependencies/client.go</code>, <code>internal/application/app.go</code>, <code>internal/storage/memory.go</code>, <code>internal/events/consumer.go</code>, <code>internal/events/outbox.go</code>, <code>internal/fulfilment/service.go</code>, <code>internal/workers/pool.go</code>, <code>internal/httpapi/server.go</code>, <code>internal/domain/types.go</code>, <code>internal/domain/errors.go</code>, <code>internal/dependencies/simulator.go</code>, <code>internal/observability/metrics.go</code>, <code>internal/observability/logging.go</code>, <code>internal/security/redact.go</code>, <code>internal/storage/lock.go</code>, <code>internal/validation/validation.go</code>, <code>internal/orders/service.go</code>.</p>
+</footer>
+
+</div>
+</body>
+</html>
