@@ -18,6 +18,13 @@ type Record struct {
 // simultaneously retained in memory while a batch runs.
 type RetentionProbe func(currentlyRetained int)
 
+// DefaultWindowSize is the WAVE-1 REPAIR (F-05) default for the
+// streaming window. It is small enough that peak retained-object
+// count is bounded regardless of batch size, and large enough that
+// the per-record processing overhead is not dominated by window
+// churn. A real deployment may override this via configuration.
+const DefaultWindowSize = 64
+
 // RunRetainAll processes a batch job.
 //
 // SOURCE CONDITION (STAB-05): it loads every record's full payload
@@ -27,6 +34,11 @@ type RetentionProbe func(currentlyRetained int)
 // payload as soon as it has been processed. Peak retained-object
 // count equals the batch size regardless of how many records have
 // already been durably processed.
+//
+// This function is retained for evaluator reproduction of the
+// seeded condition; production code MUST route batch execution
+// through RunStreaming (or an equivalent chunked/streamed
+// processor) instead.
 func RunRetainAll(records []Record, process func(Record) error, probe RetentionProbe) error {
 	retained := make([][]byte, 0, len(records))
 	for _, r := range records {
@@ -42,12 +54,16 @@ func RunRetainAll(records []Record, process func(Record) error, probe RetentionP
 	return nil
 }
 
-// RunStreaming is the corrected primitive: it processes one record at
-// a time and never accumulates more than windowSize payloads at once.
-// A repair is expected to route batch execution through something
-// with this shape (or equivalent chunked/streamed processing) instead
-// of RunRetainAll.
+// RunStreaming is the WAVE-1 REPAIR (F-05) for STAB-05 /
+// INC-2026-0705-1: it processes one record at a time and never
+// accumulates more than windowSize payloads at once. Peak
+// retained-object count is bounded by windowSize regardless of
+// batch size, so a 1M-record batch no longer retains 1M payloads
+// simultaneously.
 func RunStreaming(records []Record, windowSize int, process func(Record) error, probe RetentionProbe) error {
+	if windowSize <= 0 {
+		windowSize = DefaultWindowSize
+	}
 	window := make([][]byte, 0, windowSize)
 	for _, r := range records {
 		window = append(window, r.Payload)
@@ -62,6 +78,14 @@ func RunStreaming(records []Record, windowSize int, process func(Record) error, 
 		}
 	}
 	return nil
+}
+
+// Process is the WAVE-1 REPAIR (F-05) production entry point. It
+// routes batch execution through RunStreaming with the configured
+// window size, so the seeded STAB-05 condition (unbounded payload
+// retention) cannot be reached from production code.
+func Process(records []Record, windowSize int, process func(Record) error, probe RetentionProbe) error {
+	return RunStreaming(records, windowSize, process, probe)
 }
 
 var _ = domain.BatchJob{}

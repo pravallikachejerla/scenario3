@@ -45,6 +45,12 @@ func NewConsumer(store ConsumerStore, effect EffectFn) *Consumer {
 	return &Consumer{store: store, effect: effect}
 }
 
+// Process is the seeded (buggy) inbound path: it applies the
+// business effect unconditionally and only records the event as
+// consumed afterwards. A broker redelivery therefore applies the
+// same effect twice. It is retained for evaluator reproduction of
+// the seeded condition; production code MUST route inbound delivery
+// through ProcessIdempotent instead.
 func (c *Consumer) Process(ev InboundEvent) error {
 	if err := c.effect(ev); err != nil {
 		return err
@@ -57,11 +63,13 @@ func (c *Consumer) Process(ev InboundEvent) error {
 	return nil
 }
 
-// ProcessIdempotent is the corrected primitive: it checks
-// HasConsumed before applying any effect. A repair is expected to
-// route inbound delivery through something with this shape (or an
-// equivalent durable idempotency check performed atomically with the
-// effect) instead of Process.
+// ProcessIdempotent is the WAVE-1 REPAIR (F-02) for STAB-02 /
+// INC-2026-0611-1: it checks HasConsumed before applying any effect,
+// so a broker redelivery (at-least-once) is detected and skipped
+// rather than producing a duplicate "shipment created" audit entry.
+// If the effect itself errors, the event is NOT marked consumed, so
+// a retry can re-attempt the effect (at-least-once delivery
+// guarantee).
 func (c *Consumer) ProcessIdempotent(ev InboundEvent) error {
 	if c.store.HasConsumed(ev.EventID) {
 		return nil

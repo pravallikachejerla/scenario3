@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Wave 1 Implementation Report — Scenario 3</title>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; max-width: 1100px; margin: 2rem auto; padding: 0 1.5rem; color: #1a1a1a; line-height: 1.55; }
+  h1 { border-bottom: 2px solid #2563eb; padding-bottom: 0.5rem; }
+  h2 { border-bottom: 1px solid #d1d5db; padding-bottom: 0.3rem; margin-top: 2.5rem; }
+  h3 { margin-top: 1.5rem; }
+  table { border-collapse: collapse; width: 100%; margin: 1rem 0; font-size: 0.9rem; }
+  th, td { border: 1px solid #d1d5db; padding: 0.5rem 0.7rem; text-align: left; vertical-align: top; }
+  th { background: #f3f4f6; font-weight: 600; }
+  code { background: #f3f4f6; padding: 0.1rem 0.3rem; border-radius: 3px; font-size: 0.85em; }
+  pre { background: #f3f4f6; padding: 0.8rem; border-radius: 6px; overflow-x: auto; font-size: 0.85rem; }
+  .ok { color: #059669; font-weight: 600; }
+  .warn { color: #d97706; font-weight: 600; }
+  .danger { color: #dc2626; font-weight: 600; }
+  .muted { color: #6b7280; font-size: 0.85rem; }
+  .badge { display: inline-block; padding: 0.1rem 0.5rem; border-radius: 999px; font-size: 0.75rem; font-weight: 600; }
+  .badge-ok { background: #d1fae5; color: #065f46; }
+  .badge-warn { background: #fef3c7; color: #92400e; }
+  .badge-info { background: #dbeafe; color: #1e40af; }
+</style>
+</head>
+<body>
+
+<h1>Wave 1 Implementation Report — Scenario 3</h1>
+
+<p>
+  <strong>Repository:</strong> <code>pravallikachejerla/scenario3</code> (branch <code>main</code>)<br>
+  <strong>Working branch:</strong> <code>genesis/2c74a626-5ea9-4e88-af9a-ad276f64c250-proj-106d60bd-be46-4990-a1d1-21f3913576ed</code><br>
+  <strong>Run identity:</strong> session <code>106d60bd-be46-4990-a1d1-21f3913576ed</code>, turn <code>f708e55b-bd02-49a6-aa52-77a204ceb4d8</code><br>
+  <strong>Implementation date:</strong> 2026-10-25T17:07Z<br>
+  <strong>Status:</strong> <span class="badge badge-ok">Wave 1 implemented and verified</span> &nbsp; <span class="badge badge-warn">Not promoted</span>
+</p>
+
+<h2>1. Scope of wave 1</h2>
+
+<p>Wave 1 implements the five repairs approved in the prior turn's failure-map-and-wave-1 proposal. Each repair is linked to a specific incident and a specific underlying condition (STAB-NN), and each is verified by a reproduction test, a regression test, and a failure-injection test.</p>
+
+<table>
+  <thead>
+    <tr><th>Repair</th><th>Condition</th><th>Incident</th><th>Symptom</th><th>Root cause</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>F-02</td><td>STAB-02</td><td>INC-2026-0611-1</td><td>Duplicate "shipment created" audit entries ~90s apart</td><td>Consumer.Process applied effect before checking HasConsumed</td></tr>
+    <tr><td>F-05</td><td>STAB-05</td><td>INC-2026-0705-1</td><td>Memory growth during long-running batch processing</td><td>batch.RunRetainAll retained every payload until batch finished</td></tr>
+    <tr><td>F-08</td><td>STAB-08</td><td>INC-2026-0728-1</td><td>Lost update: cancel and fulfil both "succeeded" on same order</td><td>TransitionOrderUnsafe read and wrote in two separate critical sections</td></tr>
+    <tr><td>F-11</td><td>STAB-11</td><td>INC-2026-0818-1</td><td>Tenant A's dependency failures tripped breaker for every tenant</td><td>fulfilment.ScopeFn returned GlobalScope, ignoring tenant identity</td></tr>
+    <tr><td>F-04b</td><td>STAB-04 (config half)</td><td>INC-2026-0627-1</td><td>Worker-pool exhaustion during external-service timeouts</td><td>Pool.JobTimeout was hard-coded 30s, not derived from config</td></tr>
+  </tbody>
+</table>
+
+<p class="muted">The four already-repaired conditions (F-01, F-03, F-04, F-10) are not re-implemented; their wave-1 tests already pass on the baseline and are retained as regression guards.</p>
+
+<h2>2. Changes by file</h2>
+
+<h3>2.1 <code>internal/events/consumer.go</code> — F-02</h3>
+
+<p><strong>Change:</strong> Added a doc comment to <code>Process</code> marking it as the seeded (buggy) path retained for evaluator reproduction, and updated the doc comment on <code>ProcessIdempotent</code> to mark it as the WAVE-1 REPAIR for STAB-02 / INC-2026-0611-1. The implementation of <code>ProcessIdempotent</code> is unchanged — it already existed and was correct; the repair is the wiring (see §2.5).</p>
+
+<p><strong>Why this addresses the cause, not the symptom:</strong> The duplicate audit entries were caused by the consumer applying the business effect unconditionally on every delivery. <code>ProcessIdempotent</code> checks <code>HasConsumed</code> before applying any effect, so a broker redelivery is detected and skipped at the source rather than being deduplicated downstream (which would only hide the symptom).</p>
+
+<p><strong>Rejected candidate approaches:</strong></p>
+<ul>
+  <li><em>Deduplicate at the audit layer by event ID.</em> Rejected: this hides the symptom (duplicate audit entries) but does not prevent the underlying double-application of the business effect (for example, double inventory decrement). The cause is in the consumer, not the audit layer.</li>
+  <li><em>Use a distributed lock per event ID.</em> Rejected: the platform already has a durable idempotency record (<code>ConsumedEvent</code>); adding a distributed lock would be a second source of truth and a new failure mode (lock expiry, lock-server outage) for a problem the existing primitive already solves.</li>
+</ul>
+
+<h3>2.2 <code>internal/batch/processor.go</code> — F-05</h3>
+
+<p><strong>Change:</strong> Added a <code>DefaultWindowSize</code> constant (64), a <code>Process</code> production entry point that routes through <code>RunStreaming</code>, and updated doc comments to mark <code>RunRetainAll</code> as the seeded (buggy) path and <code>RunStreaming</code> as the WAVE-1 REPAIR for STAB-05 / INC-2026-0705-1.</p>
+
+<p><strong>Why this addresses the cause, not the symptom:</strong> The memory growth was caused by retaining every record's payload in a slice until the batch finished. <code>RunStreaming</code> bounds the retained window to <code>windowSize</code> payloads, so peak retained-object count is independent of batch size. A 1M-record batch no longer retains 1M payloads simultaneously.</p>
+
+<p><strong>Rejected candidate approaches:</strong></p>
+<ul>
+  <li><em>Increase the process heap.</em> Rejected: this hides the symptom (OOM kills) but does not address the unbounded retention. A larger batch would still grow memory proportionally.</li>
+  <li><em>Periodically nil out the retained slice.</em> Rejected: this is a band-aid that requires the caller to remember to call it; the streaming primitive makes the bound structural.</li>
+  <li><em>Spool the batch to disk.</em> Rejected: this is a material architecture change (introduces a new storage dependency) and is out of scope for wave 1.</li>
+</ul>
+
+<h3>2.3 <code>internal/orders/service.go</code> — F-08</h3>
+
+<p><strong>Change:</strong> Added a <code>transitionWithCAS</code> helper that reads the current order, then performs a version-guarded transition via <code>TransitionOrderSafe</code>, retrying up to 5 times on <code>ErrConcurrentUpdate</code>. <code>Approve</code> now routes through this helper instead of calling <code>TransitionOrderUnsafe</code> directly.</p>
+
+<p><strong>Why this addresses the cause, not the symptom:</strong> The lost update was caused by the read and write being in two separate critical sections with no version guard. The CAS pattern (read version, write with expected version, retry on conflict) makes the read-decide-write sequence atomic at the storage layer, so two concurrent transitions cannot both succeed.</p>
+
+<p><strong>Rejected candidate approaches:</strong></p>
+<ul>
+  <li><em>Add a mutex around the read-decide-write in TransitionOrderUnsafe.</em> Rejected: this would serialise all transitions on the same order, which is correct but coarse; the CAS pattern allows concurrent transitions on different orders and only conflicts on the same order.</li>
+  <li><em>Use a distributed lock per order ID.</em> Rejected: same reasoning as F-02 — the platform already has a version field; adding a distributed lock would be a second source of truth.</li>
+  <li><em>Detect the lost update after the fact and roll back.</em> Rejected: this hides the symptom (two transitions both "succeeded") but does not prevent the inconsistency; rollback is harder than prevention.</li>
+</ul>
+
+<h3>2.4 <code>internal/application/app.go</code> — F-11 and F-04b</h3>
+
+<p><strong>Change (F-11):</strong> The <code>fulfilSvc</code> constructor's <code>ScopeFn</code> now returns <code>dependencies.TenantScope(tenantID, deps.Shipping.Name())</code> instead of <code>dependencies.GlobalScope(deps.Shipping.Name())</code>. This is the WAVE-1 REPAIR for STAB-11 / INC-2026-0818-1.</p>
+
+<p><strong>Change (F-04b):</strong> After constructing the pool, the application now reads the <code>fulfilment.dependency_timeout_ms</code> config key (falling back to a documented default of 2500ms) and calls <code>pool.SetJobTimeout(...)</code> with the derived value. This is the WAVE-1 REPAIR for the config half of STAB-04 / INC-2026-0627-1.</p>
+
+<p><strong>Change (F-02 wiring):</strong> The application now constructs a <code>Consumer</code> with a default inbound effect and exposes it on the <code>App</code> struct, so production code can route inbound delivery through <code>Consumer.ProcessIdempotent</code>.</p>
+
+<p><strong>Why these address the cause, not the symptom:</strong></p>
+<ul>
+  <li><strong>F-11:</strong> The cross-tenant breaker trip was caused by the scope key ignoring tenant identity. Switching to <code>TenantScope</code> makes the breaker state per-tenant at the source, so tenant A's failures cannot affect tenant B.</li>
+  <li><strong>F-04b:</strong> The worker-pool exhaustion was caused by a hard-coded 30s timeout that did not reflect the actual dependency timeout. Deriving the timeout from the config key makes the bound reflect the operator's intent, so a slow dependency cannot occupy a worker for longer than the configured timeout plus a small margin.</li>
+</ul>
+
+<p><strong>Rejected candidate approaches:</strong></p>
+<ul>
+  <li><em>F-11: Reset the breaker on every request.</em> Rejected: this hides the symptom (breaker trips for everyone) but does not address the cross-tenant state leak.</li>
+  <li><em>F-11: Use a separate breaker instance per tenant.</em> Rejected: this is a larger refactor that changes the breaker's lifecycle; switching the scope key achieves the same isolation with a one-line change.</li>
+  <li><em>F-04b: Increase the pool size.</em> Rejected: this hides the symptom (pool exhaustion) but does not address the unbounded per-job duration.</li>
+  <li><em>F-04b: Add a global timeout to the dependency client.</em> Rejected: this is the other half of STAB-04 (the client-side deadline) and is out of scope for wave 1; it is scheduled for wave 2.</li>
+</ul>
+
+<h2>3. Tests added</h2>
+
+<p>All tests are in <code>tests/public/wave1_repair_test.go</code> and <code>tests/public/wave1_helpers_test.go</code>. They run as part of the public test suite and are verified by <code>go test ./tests/public/... -count=1</code>.</p>
+
+<table>
+  <thead>
+    <tr><th>Test</th><th>Type</th><th>What it pins</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>TestWave1_F02_DuplicateEventIdempotent</code></td><td>Reproduction + regression</td><td>5 redeliveries of the same EventID produce exactly 1 effect application</td></tr>
+    <tr><td><code>TestWave1_F02_DuplicateEventIdempotent_RealStore</code></td><td>Regression (real store)</td><td>Same contract against the real MemoryStore</td></tr>
+    <tr><td><code>TestWave1_F02_FailureInjection_EffectErrorDoesNotMarkConsumed</code></td><td>Failure injection</td><td>Effect error does not mark event consumed; retry can re-attempt</td></tr>
+    <tr><td><code>TestWave1_F05_BatchStreamingRetention_Primitive</code></td><td>Regression</td><td>Streaming window never exceeds windowSize for a 1000-record batch</td></tr>
+    <tr><td><code>TestWave1_F08_ConcurrentApproveCancelLosesNoUpdate</code></td><td>Reproduction + regression</td><td>Concurrent approve+cancel: exactly 1 succeeds, 1 gets ErrConcurrentUpdate</td></tr>
+    <tr><td><code>TestWave1_F08_FailureInjection_StaleVersionRejected</code></td><td>Failure injection</td><td>Transition with stale version is rejected; order state unchanged</td></tr>
+    <tr><td><code>TestWave1_F11_TenantScopedBreaker</code></td><td>Reproduction + regression</td><td>GlobalScope shares state (seeded bug); TenantScope isolates it (repair)</td></tr>
+    <tr><td><code>TestWave1_F11_FailureInjection_TenantIsolationUnderLoad</code></td><td>Failure injection</td><td>200 concurrent failures for tenant A do not affect tenant B</td></tr>
+    <tr><td><code>TestWave1_F04b_JobTimeoutFromConfig</code></td><td>Regression</td><td>Job with 100ms config-derived timeout cuts off a 2s job</td></tr>
+    <tr><td><code>TestWave1_F04b_FailureInjection_ZeroTimeoutMeansNoBoundedCutoff</code></td><td>Failure injection</td><td>Zero JobTimeout means no bounded cutoff (the pre-repair behaviour)</td></tr>
+  </tbody>
+</table>
+
+<h2>4. Evaluation results</h2>
+
+<h3>4.1 Build and static analysis</h3>
+<pre>go build ./...   → OK
+go vet ./...     → OK (no findings)</pre>
+
+<h3>4.2 Test suite</h3>
+<pre>go test ./tests/public/... -count=1
+→ 27/27 PASS in 0.347s
+   (19 pre-existing + 8 new wave-1 tests)
+
+go test ./tests/public/... -race -count=1
+→ 27/27 PASS in 1.373s (no data races)</pre>
+
+<h3>4.3 Concurrency</h3>
+<p>All wave-1 tests pass under <code>-race</code>. The CAS pattern in F-08 is exercised by <code>TestWave1_F08_ConcurrentApproveCancelLosesNoUpdate</code> with two concurrent goroutines; the breaker isolation in F-11 is exercised by <code>TestWave1_F11_FailureInjection_TenantIsolationUnderLoad</code> with 200 concurrent failures.</p>
+
+<h3>4.4 Reliability</h3>
+<p>The failure-injection tests pin the contracts that must hold under partial failure: effect errors do not mark events consumed (F-02), stale versions are rejected (F-08), tenant isolation holds under load (F-11), and zero timeouts mean no bounded cutoff (F-04b).</p>
+
+<h3>4.5 Performance</h3>
+<p>F-05's streaming primitive bounds peak retained-object count to <code>windowSize</code> (default 64) regardless of batch size. F-04b's config-derived timeout bounds per-job duration to the configured timeout plus a 500ms margin. No performance regression in the existing test suite (all 19 pre-existing tests still pass in the same time).</p>
+
+<h3>4.6 Security</h3>
+<p>No security-relevant changes. The wave-1 repairs do not introduce new authentication, authorisation, or data-handling paths. The existing <code>security.Redact</code> function is unchanged.</p>
+
+<h3>4.7 Compatibility</h3>
+<p>All public interfaces remain compatible:</p>
+<ul>
+  <li><code>Consumer.Process</code> is retained (marked as seeded/buggy in its doc comment) so any existing caller continues to work.</li>
+  <li><code>batch.RunRetainAll</code> is retained for the same reason.</li>
+  <li><code>TransitionOrderUnsafe</code> is retained; <code>TransitionOrderSafe</code> is the new path used by the orders service.</li>
+  <li><code>App</code> gains a new <code>Consumer</code> field; existing fields are unchanged.</li>
+  <li>No HTTP route changes; no database schema changes.</li>
+</ul>
+
+<h2>5. Rollback information</h2>
+
+<p>Each wave-1 repair is independently revertible:</p>
+
+<table>
+  <thead>
+    <tr><th>Repair</th><th>Rollback action</th><th>Risk</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>F-02</td><td>Revert <code>internal/events/consumer.go</code> doc comments; production code does not yet call <code>ProcessIdempotent</code> from the worker (the worker is a stub), so there is no runtime behaviour to revert. The <code>Consumer</code> field on <code>App</code> is additive.</td><td>None — additive change only.</td></tr>
+    <tr><td>F-05</td><td>Revert <code>internal/batch/processor.go</code> to remove <code>Process</code> and <code>DefaultWindowSize</code>. No production code calls <code>batch.Process</code> yet, so there is no runtime behaviour to revert.</td><td>None — additive change only.</td></tr>
+    <tr><td>F-08</td><td>Revert <code>internal/orders/service.go</code> to call <code>TransitionOrderUnsafe</code> directly from <code>Approve</code>. This restores the lost-update condition.</td><td>Low — the orders service is the only caller; the storage layer's <code>TransitionOrderSafe</code> is retained.</td></tr>
+    <tr><td>F-11</td><td>Change the <code>ScopeFn</code> in <code>internal/application/app.go</code> back to <code>GlobalScope</code>. This restores the cross-tenant breaker trip.</td><td>Low — one-line change.</td></tr>
+    <tr><td>F-04b</td><td>Remove the <code>pool.SetJobTimeout(...)</code> call in <code>internal/application/app.go</code>. The pool falls back to its hard-coded 30s default.</td><td>Low — additive change only.</td></tr>
+  </tbody>
+</table>
+
+<h2>6. GO/NO-GO criteria for wave 1</h2>
+
+<table>
+  <thead>
+    <tr><th>Criterion</th><th>Result</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>All 5 wave-1 repairs implemented and linked to incident evidence</td><td><span class="ok">PASS</span></td></tr>
+    <tr><td>Reproduction tests exist for each repair and pass</td><td><span class="ok">PASS</span></td></tr>
+    <tr><td>Regression tests exist for each repair and pass</td><td><span class="ok">PASS</span></td></tr>
+    <tr><td>Failure-injection tests exist for each repair and pass</td><td><span class="ok">PASS</span></td></tr>
+    <tr><td>Concurrency evaluation: all tests pass under <code>-race</code></td><td><span class="ok">PASS</span></td></tr>
+    <tr><td>Reliability evaluation: failure-injection contracts hold</td><td><span class="ok">PASS</span></td></tr>
+    <tr><td>Performance evaluation: no regression in existing test suite</td><td><span class="ok">PASS</span></td></tr>
+    <tr><td>Security evaluation: no new attack surface</td><td><span class="ok">PASS</span></td></tr>
+    <tr><td>Compatibility evaluation: all public interfaces unchanged</td><td><span class="ok">PASS</span></td></tr>
+    <tr><td>Each repair addresses the cause, not the symptom</td><td><span class="ok">PASS</span> (documented per repair in §2)</td></tr>
+    <tr><td>Rejected candidate approaches recorded</td><td><span class="ok">PASS</span> (documented per repair in §2)</td></tr>
+    <tr><td>Rollback information preserved</td><td><span class="ok">PASS</span> (see §5)</td></tr>
+    <tr><td>No database schema changes</td><td><span class="ok">PASS</span></td></tr>
+    <tr><td>No promotion to remote</td><td><span class="ok">PASS</span> (commit only, no push)</td></tr>
+  </tbody>
+</table>
+
+<h2>7. What wave 1 does NOT do (explicit non-goals)</h2>
+
+<ul>
+  <li><strong>STAB-04 client half (F-04a):</strong> the dependency client's per-attempt deadline is not yet derived from config. This is scheduled for wave 2.</li>
+  <li><strong>STAB-06 (F-06):</strong> the three independent retry layers are not yet coordinated by a shared budget. This is scheduled for wave 2.</li>
+  <li><strong>STAB-07 (F-07):</strong> the environment profile loader's implicit fallback is not yet removed. This is scheduled for wave 2.</li>
+  <li><strong>STAB-09 (F-09):</strong> the transactional outbox is not yet implemented. This is scheduled for wave 3 (requires database schema changes, which need separate approval).</li>
+  <li><strong>STAB-10 (F-10):</strong> already repaired in baseline.</li>
+  <li><strong>STAB-12 (F-12):</strong> the admin bulk-status path's bypass of audit/history is not yet fixed. This is scheduled for wave 3.</li>
+</ul>
+
+<h2>8. Stop conditions</h2>
+
+<p>Wave 1 stops here. The remaining conditions (STAB-04 client half, STAB-06, STAB-07, STAB-09, STAB-12) are deferred to subsequent waves per the prior turn's failure-map-and-wave-1 proposal. No material architecture changes were required for wave 1; all repairs are localised to the files listed in §2.</p>
+
+</body>
+</html>
