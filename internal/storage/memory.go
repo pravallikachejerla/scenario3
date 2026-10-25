@@ -29,19 +29,19 @@ var LockAcquireGap time.Duration
 type MemoryStore struct {
 	mu sync.RWMutex
 
-	tenants   map[string]domain.Tenant
-	users     map[string]domain.User
-	orders    map[string]*domain.Order
-	history   []domain.StatusHistoryEntry
-	inventory map[string]*domain.InventoryItem // key: tenant/sku
+	tenants      map[string]domain.Tenant
+	users        map[string]domain.User
+	orders       map[string]*domain.Order
+	history      []domain.StatusHistoryEntry
+	inventory    map[string]*domain.InventoryItem // key: tenant/sku
 	reservations map[string]*domain.InventoryReservation
-	fulfilments map[string]*domain.FulfilmentRequest
-	outbox    []*domain.OutboxEvent
-	consumed  map[string]domain.ConsumedEvent // key: idempotency key
-	configs   map[string]*domain.ConfigVersion // key: tenant/key
-	audits    []domain.AuditEvent
-	depCalls  []domain.DependencyCallRecord
-	batchJobs map[string]*domain.BatchJob
+	fulfilments  map[string]*domain.FulfilmentRequest
+	outbox       []*domain.OutboxEvent
+	consumed     map[string]domain.ConsumedEvent  // key: idempotency key
+	configs      map[string]*domain.ConfigVersion // key: tenant/key
+	audits       []domain.AuditEvent
+	depCalls     []domain.DependencyCallRecord
+	batchJobs    map[string]*domain.BatchJob
 
 	locker *KeyedLocker
 }
@@ -210,28 +210,57 @@ func (m *MemoryStore) TransitionOrderSafe(ctx context.Context, id string, expect
 }
 
 // AdminBulkSetStatus is the emergency customisation path used by
-// support tooling to force an order into a status without going
-// through TransitionOrder{Unsafe,Safe}.
+// support tooling to force an order into a status.
 //
-// SOURCE CONDITION (STAB-12): it writes the status field directly,
-// bypassing domain.IsValidTransition, the audit trail and any
-// inventory/fulfilment side effects that a normal transition would
-// trigger. It is reachable only from the administrative bulk
-// operation handler, never from the ordinary order workflow.
+// WAVE-1 REPAIR (F-11 / C-08 / STAB-12): the bulk path now routes
+// every status change through TransitionOrderSafe so that each
+// affected order produces an audit event, a history entry, a version
+// bump, and the same inventory side effects as a normal transition.
+// The previous direct write bypassed domain.IsValidTransition, the
+// audit trail and any inventory/fulfilment side effects, making
+// administrative bulk operations invisible to everything that
+// depends on the normal transition contract.
+//
+// The corrected primitive TransitionOrderSafe is the same one used by
+// the regular workflow; the bulk path is now a thin loop over it
+// rather than a parallel write path.
 func (m *MemoryStore) AdminBulkSetStatus(ctx context.Context, ids []string, to domain.OrderStatus, actorID string) (int, error) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
 	n := 0
 	for _, id := range ids {
+		// Read the current version under the read lock so we can pass
+		// it to TransitionOrderSafe as the CAS guard. TransitionOrderSafe
+		// itself takes the write lock and re-checks the version, so a
+		// concurrent transition between the read and the write is
+		// detected and reported as ErrConcurrentUpdate rather than
+		// silently overwriting the other writer's effect.
+		m.mu.RLock()
 		o, ok := m.orders[id]
 		if !ok {
+			m.mu.RUnlock()
 			continue
 		}
-		o.Status = to
-		o.UpdatedAt = time.Now().UTC()
-		// No audit event, no history entry, no version bump: the
-		// bulk path is invisible to everything that depends on the
-		// normal transition contract.
+		currentVersion := o.Version
+		tenantID := o.TenantID
+		m.mu.RUnlock()
+
+		if _, err := m.TransitionOrderSafe(ctx, id, currentVersion, to, actorID, "admin bulk update", "admin-bulk"); err != nil {
+			// A concurrent update on this order is not a fatal error
+			// for the bulk operation: skip and continue with the
+			// remaining ids. Other errors (invalid transition, not
+			// found) are also non-fatal for the bulk path - the
+			// caller asked us to update a set of orders and we report
+			// how many we actually changed.
+			continue
+		}
+		m.AppendAudit(domain.AuditEvent{
+			ID:        fmt.Sprintf("audit-bulk-%d", time.Now().UnixNano()),
+			TenantID:  tenantID,
+			ActorID:   actorID,
+			Action:    "order.admin_bulk_status",
+			EntityID:  id,
+			Details:   fmt.Sprintf("status=%s via admin bulk", to),
+			Timestamp: time.Now().UTC(),
+		})
 		n++
 	}
 	return n, nil

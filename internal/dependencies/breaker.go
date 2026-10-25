@@ -29,7 +29,9 @@ func GlobalScope(dep domain.DependencyName) string { return string(dep) }
 // TenantScope is the corrected scope key: a repair is expected to
 // switch call sites from GlobalScope to TenantScope so that breaker
 // state cannot leak across tenants.
-func TenantScope(tenantID string, dep domain.DependencyName) string { return tenantID + "/" + string(dep) }
+func TenantScope(tenantID string, dep domain.DependencyName) string {
+	return tenantID + "/" + string(dep)
+}
 
 func (b *Breaker) Allow(scope string) bool {
 	b.mu.Lock()

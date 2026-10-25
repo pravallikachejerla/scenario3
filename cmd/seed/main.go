@@ -35,11 +35,11 @@ type SeedOrder struct {
 }
 
 type Dataset struct {
-	Seed      int64       `json:"seed"`
-	Profile   Profile     `json:"profile"`
-	Tenants   []string    `json:"tenants"`
-	Orders    []SeedOrder `json:"orders"`
-	SHA256    string      `json:"sha256"`
+	Seed    int64       `json:"seed"`
+	Profile Profile     `json:"profile"`
+	Tenants []string    `json:"tenants"`
+	Orders  []SeedOrder `json:"orders"`
+	SHA256  string      `json:"sha256"`
 }
 
 func build(seed int64, profile Profile) Dataset {

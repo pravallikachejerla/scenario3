@@ -191,7 +191,7 @@ func TestWave1_F10_CallerContextCancellation(t *testing.T) {
 
 	callerCtx, cancel := context.WithCancel(context.Background())
 	pool.Submit(workers.Job{
-		ID: "job-1",
+		ID:  "job-1",
 		Ctx: callerCtx,
 		Run: func(ctx context.Context) error {
 			close(jobStarted)

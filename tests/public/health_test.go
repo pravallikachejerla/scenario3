@@ -24,7 +24,7 @@ func newTestServer(t *testing.T) (*httptest.Server, *storage.MemoryStore) {
 	store.PutInventory(domain.InventoryItem{SKU: "SKU-1", TenantID: "tenant-a", OnHand: 50})
 	store.PutOrder(domain.Order{
 		ID: "ord-1", TenantID: "tenant-a", CustomerID: "cust-1", Status: domain.OrderPending,
-		Items: []domain.OrderItem{{SKU: "SKU-1", Quantity: 1, UnitJPY: 1000}},
+		Items:     []domain.OrderItem{{SKU: "SKU-1", Quantity: 1, UnitJPY: 1000}},
 		CreatedAt: time.Now().UTC(), UpdatedAt: time.Now().UTC(),
 	})
 	m := observability.NewAppMetrics()

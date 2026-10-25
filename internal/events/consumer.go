@@ -10,10 +10,10 @@ import (
 // simulator. EventID is the broker-assigned message ID; a redelivery
 // (at-least-once semantics) carries the same EventID again.
 type InboundEvent struct {
-	EventID   string
-	OrderID   string
-	Type      string
-	Payload   []byte
+	EventID string
+	OrderID string
+	Type    string
+	Payload []byte
 }
 
 // ConsumerStore is the subset of persistence the consumer needs.

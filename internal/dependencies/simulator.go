@@ -30,8 +30,8 @@ const (
 // Behaviour configures how a simulated call behaves for a given
 // tenant and dependency.
 type Behaviour struct {
-	Delay       time.Duration
-	Mode        FailureMode
+	Delay time.Duration
+	Mode  FailureMode
 	// FailFirstN causes the first N calls (per tenant+dependency key)
 	// to fail with Mode before succeeding, letting tests script a
 	// bounded number of retryable failures followed by recovery.

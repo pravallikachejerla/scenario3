@@ -16,12 +16,12 @@ type Logger struct {
 func NewLogger() *Logger { return &Logger{out: os.Stdout} }
 
 type logLine struct {
-	Timestamp     string `json:"timestamp"`
-	Level         string `json:"level"`
-	Message       string `json:"message"`
-	RequestID     string `json:"request_id,omitempty"`
-	CorrelationID string `json:"correlation_id,omitempty"`
-	TenantID      string `json:"tenant_id,omitempty"`
+	Timestamp     string         `json:"timestamp"`
+	Level         string         `json:"level"`
+	Message       string         `json:"message"`
+	RequestID     string         `json:"request_id,omitempty"`
+	CorrelationID string         `json:"correlation_id,omitempty"`
+	TenantID      string         `json:"tenant_id,omitempty"`
 	Fields        map[string]any `json:"fields,omitempty"`
 }
 

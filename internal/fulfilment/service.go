@@ -18,9 +18,9 @@ import (
 // internal/workers callers in cmd/worker). None of the three layers
 // knows about the others' retry budget.
 type Service struct {
-	Client       *dependencies.Client
+	Client          *dependencies.Client
 	ServiceRetryMax int
-	ScopeFn      func(tenantID string) string
+	ScopeFn         func(tenantID string) string
 }
 
 func New(client *dependencies.Client, serviceRetryMax int, scopeFn func(tenantID string) string) *Service {

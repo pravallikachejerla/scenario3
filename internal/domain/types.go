@@ -13,10 +13,10 @@ type Tenant struct {
 type Role string
 
 const (
-	RoleAdmin       Role = "admin"
-	RoleOpsManager  Role = "ops_manager"
-	RoleFulfilment  Role = "fulfilment_agent"
-	RoleViewer      Role = "viewer"
+	RoleAdmin      Role = "admin"
+	RoleOpsManager Role = "ops_manager"
+	RoleFulfilment Role = "fulfilment_agent"
+	RoleViewer     Role = "viewer"
 )
 
 type User struct {
@@ -121,12 +121,12 @@ type FulfilmentRequest struct {
 // database transaction as the business-state change, then a worker
 // publishes it and marks it dispatched.
 type OutboxEvent struct {
-	ID          string
-	TenantID    string
-	AggregateID string
-	Type        string
-	Payload     []byte
-	CreatedAt   time.Time
+	ID           string
+	TenantID     string
+	AggregateID  string
+	Type         string
+	Payload      []byte
+	CreatedAt    time.Time
 	DispatchedAt *time.Time
 }
 
@@ -134,9 +134,9 @@ type OutboxEvent struct {
 // its business effect, keyed by the event's own idempotency key so a
 // redelivered copy can be detected and skipped.
 type ConsumedEvent struct {
-	EventID     string
+	EventID        string
 	IdempotencyKey string
-	ConsumedAt  time.Time
+	ConsumedAt     time.Time
 }
 
 type ConfigVersion struct {
@@ -152,10 +152,10 @@ type ConfigVersion struct {
 type DependencyName string
 
 const (
-	DependencyPayment  DependencyName = "payment"
-	DependencyShipping DependencyName = "shipping"
+	DependencyPayment   DependencyName = "payment"
+	DependencyShipping  DependencyName = "shipping"
 	DependencyInventory DependencyName = "inventory-provider"
-	DependencyQueue    DependencyName = "queue"
+	DependencyQueue     DependencyName = "queue"
 )
 
 type DependencyCallRecord struct {
@@ -191,8 +191,8 @@ type BatchJob struct {
 }
 
 type IdempotencyRecord struct {
-	Key       string
-	RequestHash string
+	Key              string
+	RequestHash      string
 	ResponseSnapshot string
-	CreatedAt time.Time
+	CreatedAt        time.Time
 }

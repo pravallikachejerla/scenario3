@@ -59,7 +59,7 @@ func (c *Client) Call(ctx context.Context, tenantID, orderID string, scope strin
 		}
 		if c.Rec != nil {
 			c.Rec.RecordDependencyCall(domain.DependencyCallRecord{
-				ID: "dep-" + tenantID + "-" + time.Now().Format("150405.000000000"),
+				ID:       "dep-" + tenantID + "-" + time.Now().Format("150405.000000000"),
 				TenantID: tenantID, Dependency: c.Sim.name, OrderID: orderID,
 				Attempt: attempt, Layer: "http-client", Outcome: outcome,
 				DurationMS: dur.Milliseconds(), Timestamp: time.Now().UTC(),

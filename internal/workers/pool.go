@@ -47,8 +47,8 @@ type Pool struct {
 	wg      sync.WaitGroup
 	started int32
 
-	active  int32 // currently-occupied workers, for evidence
-	queued  int32 // jobs waiting to be picked up
+	active int32 // currently-occupied workers, for evidence
+	queued int32 // jobs waiting to be picked up
 }
 
 func NewPool(size int) *Pool {

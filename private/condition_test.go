@@ -36,7 +36,7 @@ func freshOrderStore(t *testing.T, status domain.OrderStatus, sku string, qty in
 	id := "ord-1"
 	s.PutOrder(domain.Order{
 		ID: id, TenantID: "tenant-a", CustomerID: "cust-1", Status: status,
-		Items: []domain.OrderItem{{SKU: sku, Quantity: qty, UnitJPY: 1000}},
+		Items:   []domain.OrderItem{{SKU: sku, Quantity: qty, UnitJPY: 1000}},
 		Version: 0, CreatedAt: time.Now().UTC(), UpdatedAt: time.Now().UTC(),
 	})
 	return s, id
@@ -280,8 +280,8 @@ func TestSTAB05_BatchMemoryRetention(t *testing.T) {
 func TestSTAB06_RetryAmplification(t *testing.T) {
 	sim := dependencies.NewSimulator(domain.DependencyShipping)
 	sim.Configure("tenant-a", dependencies.Behaviour{Mode: dependencies.FailureRetryable}) // never recovers
-	breaker := dependencies.NewBreaker(1000)                                              // effectively disabled for this test
-	client := dependencies.NewClient(sim, breaker, 3, nil)                                  // layer 1: http-client retries x3
+	breaker := dependencies.NewBreaker(1000)                                               // effectively disabled for this test
+	client := dependencies.NewClient(sim, breaker, 3, nil)                                 // layer 1: http-client retries x3
 
 	const serviceRetryMax = 2 // layer 2: fulfilment service retries x2
 	const workerRetryMax = 2  // layer 3: worker retries x2
