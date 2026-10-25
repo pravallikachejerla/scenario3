@@ -29,6 +29,11 @@ type App struct {
 	Deps        *dependencies.Registry
 	Breaker     *dependencies.Breaker
 	Publisher   *events.Publisher
+	// IdempotentConsumer is the first-wave (F-02) durable
+	// idempotency primitive. It is wired only when the binary is
+	// built with `-tags firstwave`; the baseline build leaves it
+	// nil and uses the original Consumer path.
+	IdempotentConsumer *events.IdempotentConsumer
 	Fulfilment  *fulfilment.Service
 	Pool        *workers.Pool
 	Metrics     *observability.AppMetrics

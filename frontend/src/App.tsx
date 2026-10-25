@@ -7,6 +7,7 @@ import IncidentPanel from "./pages/IncidentPanel";
 import ConfigurationView from "./pages/ConfigurationView";
 import QueueMetrics from "./pages/QueueMetrics";
 import RecoveryActions from "./pages/RecoveryActions";
+import Wave1Evidence from "./pages/Wave1Evidence";
 
 const TABS = [
   { id: "orders", label: "Orders", Component: OrdersPage },
@@ -17,6 +18,7 @@ const TABS = [
   { id: "configuration", label: "Configuration", Component: ConfigurationView },
   { id: "queue", label: "Queue / Retry Metrics", Component: QueueMetrics },
   { id: "recovery", label: "Recovery Actions", Component: RecoveryActions },
+  { id: "wave1", label: "Wave-1 Evidence", Component: Wave1Evidence },
 ] as const;
 
 export default function App() {
