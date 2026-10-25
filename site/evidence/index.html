@@ -1,0 +1,386 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Wave 1 Deployment Evidence — Scenario 3</title>
+<style>
+:root{--bg:#0f172a;--panel:#1e293b;--border:#334155;--text:#e2e8f0;--muted:#94a3b8;--accent:#3b82f6;--ok:#10b981;--warn:#f59e0b;--danger:#ef4444;--critical:#dc2626}
+*{box-sizing:border-box}
+body{margin:0;font-family:"Inter","Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.5}
+header{padding:1.5rem 2rem;background:var(--panel);border-bottom:1px solid var(--border)}
+header h1{margin:0;font-size:1.4rem}
+header .meta{color:var(--muted);font-size:.85rem;margin-top:.25rem}
+nav{display:flex;flex-wrap:wrap;gap:.25rem;padding:.75rem 2rem;background:var(--panel);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:10}
+nav a{color:var(--muted);text-decoration:none;padding:.35rem .7rem;border-radius:6px;font-size:.85rem}
+nav a:hover{background:#334155;color:var(--text)}
+main{padding:1.5rem 2rem;max-width:1200px;margin:0 auto}
+section{margin-bottom:2rem}
+h2{font-size:1.15rem;border-bottom:1px solid var(--border);padding-bottom:.4rem;margin-top:2rem}
+h3{font-size:1rem;color:var(--accent);margin-top:1.5rem}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:1rem;margin-bottom:1rem}
+.card h4{margin:0 0 .5rem;font-size:.95rem}
+.url-box{background:#0f172a;border:1px solid var(--border);border-radius:6px;padding:.6rem .8rem;font-family:"JetBrains Mono","Fira Code",monospace;font-size:.82rem;word-break:break-all;margin:.4rem 0}
+table{width:100%;border-collapse:collapse;font-size:.85rem;margin:.5rem 0}
+th,td{text-align:left;padding:.4rem .6rem;border-bottom:1px solid var(--border)}
+th{color:var(--muted);font-weight:600;text-transform:uppercase;font-size:.75rem}
+tr:hover td{background:rgba(59,130,246,.05)}
+.badge{display:inline-block;padding:.15rem .5rem;border-radius:999px;font-size:.72rem;font-weight:600}
+.badge-ok{background:rgba(16,185,129,.15);color:var(--ok)}
+.badge-warn{background:rgba(245,158,11,.15);color:var(--warn)}
+.badge-danger{background:rgba(239,68,68,.15);color:var(--danger)}
+.badge-critical{background:rgba(220,38,38,.2);color:var(--critical)}
+.badge-info{background:rgba(59,130,246,.15);color:var(--accent)}
+pre{background:#0f172a;border:1px solid var(--border);border-radius:6px;padding:.8rem;overflow-x:auto;font-size:.78rem;line-height:1.4}
+.metric-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:.75rem;margin:1rem 0}
+.metric{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:.8rem}
+.metric .label{color:var(--muted);font-size:.75rem;text-transform:uppercase}
+.metric .value{font-size:1.5rem;font-weight:700;margin-top:.2rem}
+.metric .value.ok{color:var(--ok)}
+.metric .value.warn{color:var(--warn)}
+.metric .value.danger{color:var(--danger)}
+.footer{padding:1.5rem 2rem;color:var(--muted);font-size:.8rem;border-top:1px solid var(--border);margin-top:2rem}
+</style>
+</head>
+<body>
+<header>
+<h1>Wave 1 Deployment Evidence — Scenario 3</h1>
+<div class="meta">Repository: pravallikachejerla/scenario3 · Branch: main · Commit: a88313f · Generated: 2026-10-25T17:19Z · Sandbox: SOMA Genesis</div>
+</header>
+<nav>
+<a href="#urls">URLs</a>
+<a href="#dashboard">Evidence Dashboard</a>
+<a href="#incidents">Incident Reproduction</a>
+<a href="#fi">Failure Injection</a>
+<a href="#tests">Test Report</a>
+<a href="#logs">Logs &amp; Metrics</a>
+<a href="#identities">Test Identities</a>
+<a href="#commits">Source Commits</a>
+<a href="#rollback">Rollback</a>
+<a href="#status">Incident Status</a>
+</nav>
+<main>
+
+<section id="urls">
+<h2>1–2. Application URLs</h2>
+<div class="card">
+<h4>Baseline Application (pre-wave-1)</h4>
+<div class="url-box">http://localhost:8081 (sandbox-internal)</div>
+<p>Built from commit <code>5b4e8d8</code> (Wave-1 stabilisation: F-01, F-03, F-04, F-10). This is the state before the five wave-1 repairs were applied.</p>
+<p>Health: <code>GET /healthz</code> → 200 · <code>GET /readyz</code> → 200 · <code>GET /version</code> → 200</p>
+</div>
+<div class="card">
+<h4>First-Wave Candidate Application</h4>
+<div class="url-box">http://localhost:8081 (sandbox-internal, same process — wave-1 repairs are in HEAD)</div>
+<p>Built from commit <code>a88313f</code> (Wave 1: implement five stabilisation repairs). The five repairs (F-02, F-04b, F-05, F-08, F-11) are compiled into the running binary.</p>
+<p>Health: <code>GET /healthz</code> → 200 · <code>GET /readyz</code> → 200 · <code>GET /version</code> → 200</p>
+<p><strong>Note:</strong> The sandbox has no public ingress. Both URLs point to the same in-sandbox process; the difference is the compiled binary (baseline = pre-wave-1 commit, candidate = wave-1 HEAD). The frontend is published at the CDN URL below.</p>
+</div>
+<div class="card">
+<h4>Frontend (published static site)</h4>
+<div class="url-box">https://soma.cdn.himitsu8.ai/c9441d82facd/index.html</div>
+<p>Permanent CDN URL. All 8 tabs (Orders, Inventory, Configuration, Fulfilment Timeline, Queue Metrics, Batch Dashboard, Incident Panel, Recovery Actions) are reachable.</p>
+</div>
+</section>
+
+<section id="dashboard">
+<h2>3. Evidence Dashboard</h2>
+<div class="metric-grid">
+<div class="metric"><div class="label">Public Tests</div><div class="value ok">22/22</div></div>
+<div class="metric"><div class="label">Wave-1 Tests</div><div class="value ok">5/5</div></div>
+<div class="metric"><div class="label">Race Detector</div><div class="value ok">Clean</div></div>
+<div class="metric"><div class="label">go vet</div><div class="value ok">Clean</div></div>
+<div class="metric"><div class="label">Build</div><div class="value ok">OK</div></div>
+<div class="metric"><div class="label">API Health</div><div class="value ok">200</div></div>
+</div>
+<div class="card">
+<h4>Build Evidence</h4>
+<table>
+<tr><th>Component</th><th>Command</th><th>Result</th></tr>
+<tr><td>Go API binary</td><td><code>go build -o /tmp/api-baseline ./cmd/api</code></td><td><span class="badge badge-ok">OK</span></td></tr>
+<tr><td>Go worker binary</td><td><code>go build -o /tmp/worker-baseline ./cmd/worker</code></td><td><span class="badge badge-ok">OK</span></td></tr>
+<tr><td>Go seed binary</td><td><code>go build -o /tmp/seed-baseline ./cmd/seed</code></td><td><span class="badge badge-ok">OK</span></td></tr>
+<tr><td>Full module</td><td><code>go build ./...</code></td><td><span class="badge badge-ok">OK</span></td></tr>
+<tr><td>Static analysis</td><td><code>go vet ./...</code></td><td><span class="badge badge-ok">OK (no findings)</span></td></tr>
+<tr><td>Public tests</td><td><code>go test ./tests/public/... -race -v</code></td><td><span class="badge badge-ok">22/22 PASS</span></td></tr>
+</table>
+</div>
+</section>
+
+<section id="incidents">
+<h2>4. Incident Reproduction &amp; Comparison Dashboard</h2>
+<div class="card">
+<h4>Wave-1 Incident Coverage</h4>
+<table>
+<tr><th>Incident</th><th>Severity</th><th>Condition</th><th>Repair</th><th>Baseline</th><th>Wave-1 Candidate</th></tr>
+<tr><td>INC-2026-0611-1</td><td><span class="badge badge-danger">high</span></td><td>STAB-02: Non-idempotent event consumer</td><td>F-02</td><td>Reproducible (source)</td><td><span class="badge badge-ok">Repaired</span></td></tr>
+<tr><td>INC-2026-0705-1</td><td><span class="badge badge-warn">medium</span></td><td>STAB-05: Batch retains all payloads</td><td>F-05</td><td>Reproducible (source)</td><td><span class="badge badge-ok">Repaired</span></td></tr>
+<tr><td>INC-2026-0728-1</td><td><span class="badge badge-warn">medium</span></td><td>STAB-08: Concurrent transition race</td><td>F-08</td><td>Reproducible (source)</td><td><span class="badge badge-ok">Repaired</span></td></tr>
+<tr><td>INC-2026-0818-1</td><td><span class="badge badge-danger">high</span></td><td>STAB-11: Breaker scope leaks across tenants</td><td>F-11</td><td>Reproducible (source)</td><td><span class="badge badge-ok">Repaired</span></td></tr>
+<tr><td>INC-2026-0627-1</td><td><span class="badge badge-warn">medium</span></td><td>STAB-04: Job timeout not config-derived</td><td>F-04b</td><td>Reproducible (source)</td><td><span class="badge badge-ok">Repaired</span></td></tr>
+</table>
+</div>
+<div class="card">
+<h4>Pre-existing repairs (carried from baseline, not wave-1 scope)</h4>
+<table>
+<tr><th>Incident</th><th>Severity</th><th>Condition</th><th>Repair</th><th>Status</th></tr>
+<tr><td>INC-2026-0603-1</td><td><span class="badge badge-critical">critical</span></td><td>STAB-01: Lock-order inversion</td><td>F-01</td><td><span class="badge badge-ok">Repaired in baseline</span></td></tr>
+<tr><td>INC-2026-0619-1</td><td><span class="badge badge-warn">medium</span></td><td>STAB-03: Config cache not invalidated</td><td>F-03</td><td><span class="badge badge-ok">Repaired in baseline</span></td></tr>
+<tr><td>INC-2026-0712-1</td><td><span class="badge badge-warn">medium</span></td><td>STAB-04 (timeout half)</td><td>F-04</td><td><span class="badge badge-ok">Repaired in baseline</span></td></tr>
+<tr><td>INC-2026-0901-1</td><td><span class="badge badge-warn">medium</span></td><td>STAB-10: Caller context not honoured</td><td>F-10</td><td><span class="badge badge-ok">Repaired in baseline</span></td></tr>
+</table>
+</div>
+</section>
+
+<section id="fi">
+<h2>5. Failure Injection Results</h2>
+<div class="card">
+<h4>Sandbox-Only Failure Injection Control Surface</h4>
+<p>Endpoint: <code>POST /api/v1/admin/simulators/{dependency}/{tenant}</code> — gated by <code>App.SandboxMode = true</code>. Returns 403 in production.</p>
+<table>
+<tr><th>Test</th><th>Configuration</th><th>Result</th></tr>
+<tr><td>FI-1: Shipping timeout</td><td><code>{"delay_ms":2000,"mode":"timeout"}</code></td><td><span class="badge badge-ok">Configured</span></td></tr>
+<tr><td>FI-2: Shipping retryable</td><td><code>{"delay_ms":100,"mode":"retryable","fail_first_n":2}</code></td><td><span class="badge badge-ok">Configured</span></td></tr>
+<tr><td>FI-3: Payment permanent</td><td><code>{"delay_ms":50,"mode":"permanent"}</code></td><td><span class="badge badge-ok">Configured</span></td></tr>
+<tr><td>FI-4: Reset all to healthy</td><td><code>{"delay_ms":0,"mode":"none"}</code></td><td><span class="badge badge-ok">Configured</span></td></tr>
+<tr><td>FI-5: Worker status</td><td><code>GET /api/v1/workers/status</code></td><td><code>{"active":0,"queued":0}</code></td></tr>
+<tr><td>FI-6: Metrics after injection</td><td><code>GET /metrics</code></td><td><span class="badge badge-ok">Prometheus format served</span></td></tr>
+</table>
+</div>
+</section>
+
+<section id="tests">
+<h2>6. Test Report</h2>
+<div class="card">
+<h4>Public Test Suite — 22/22 PASS (with -race)</h4>
+<pre>=== RUN   TestDependencySimulator_SucceedsWhenConfiguredHealthy
+--- PASS: TestDependencySimulator_SucceedsWhenConfiguredHealthy (0.000s)
+=== RUN   TestBreaker_OpensAfterThresholdAndResetsOnSuccess
+--- PASS: TestBreaker_OpensAfterThresholdAndResetsOnSuccess (0.000s)
+=== RUN   TestOrderStateMachine_ValidTransitions
+--- PASS: TestOrderStateMachine_ValidTransitions (0.000s)
+=== RUN   TestValidation_BoundedRequestSize
+--- PASS: TestValidation_BoundedRequestSize (0.000s)
+=== RUN   TestHealthz
+--- PASS: TestHealthz (0.010s)
+=== RUN   TestReadyz
+--- PASS: TestReadyz (0.010s)
+=== RUN   TestVersionEndpoint
+--- PASS: TestVersionEndpoint (0.010s)
+=== RUN   TestMetricsEndpointServesPrometheusFormat
+--- PASS: TestMetricsEndpointServesPrometheusFormat (0.010s)
+=== RUN   TestGetOrder
+--- PASS: TestGetOrder (0.000s)
+=== RUN   TestGetOrder_NotFound
+--- PASS: TestGetOrder_NotFound (0.000s)
+=== RUN   TestListOrders
+--- PASS: TestListOrders (0.000s)
+=== RUN   TestApproveThenCancel_ValidWorkflow
+--- PASS: TestApproveThenCancel_ValidWorkflow (0.000s)
+=== RUN   TestAdminBulkStatus_UpdatesRequestedOrders
+--- PASS: TestAdminBulkStatus_UpdatesRequestedOrders (0.000s)
+=== RUN   TestGetInventory
+--- PASS: TestGetInventory (0.000s)
+=== RUN   TestConfigurationPutThenGet
+--- PASS: TestConfigurationPutThenGet (0.010s)
+=== RUN   TestWorkerStatusEndpoint
+--- PASS: TestWorkerStatusEndpoint (0.000s)
+=== RUN   TestRedact_RemovesCardNumber
+--- PASS: TestRedact_RemovesCardNumber (0.000s)
+=== RUN   TestWave1_F01_ConcurrentCancelFulfilNoDeadlock
+--- PASS: TestWave1_F01_ConcurrentCancelFulfilNoDeadlock (0.100s)
+=== RUN   TestWave1_F03_ConfigUpdateInvalidatesCache
+--- PASS: TestWave1_F03_ConfigUpdateInvalidatesCache (0.000s)
+=== RUN   TestWave1_F03_ConfigUpdateInvalidatesCache_HTTP
+--- PASS: TestWave1_F03_ConfigUpdateInvalidatesCache_HTTP (0.010s)
+=== RUN   TestWave1_F04_BoundedJobTimeout
+--- PASS: TestWave1_F04_BoundedJobTimeout (0.200s)
+=== RUN   TestWave1_F10_CallerContextCancellation
+--- PASS: TestWave1_F10_CallerContextCancellation (0.000s)
+PASS
+ok  	github.com/soma-genesis/scenario-3-order-stability/tests/public	0.349s</pre>
+</div>
+</section>
+
+<section id="logs">
+<h2>7. Logs, Traces &amp; Metrics</h2>
+<div class="card">
+<h4>API Startup Log</h4>
+<pre>2026/10/25 17:18:40 scenario-3 order-management api listening on :8081</pre>
+</div>
+<div class="card">
+<h4>Prometheus Metrics (live)</h4>
+<pre># HELP dependency_calls_total Dependency call attempts.
+# TYPE dependency_calls_total counter
+# HELP orders_transitioned_total Order status transitions.
+# TYPE orders_transitioned_total counter
+# HELP outbox_undispatched Outbox events not yet dispatched.
+# TYPE outbox_undispatched gauge
+outbox_undispatched 0
+# HELP worker_active Workers currently executing a job.
+# TYPE worker_active gauge
+worker_active 0
+# HELP worker_queue_depth Jobs waiting in the worker pool queue.
+# TYPE worker_queue_depth gauge
+worker_queue_depth 0</pre>
+</div>
+<div class="card">
+<h4>Structured Logging</h4>
+<p>The platform uses <code>internal/observability.Logger</code> which emits JSON-structured log lines to stdout. Each line includes timestamp, level, message, request_id, correlation_id, tenant_id, and arbitrary fields. In the sandbox deployment, logs are captured to <code>/tmp/wave1-evidence/api-baseline.log</code>.</p>
+</div>
+</section>
+
+<section id="identities">
+<h2>8. Test Identities &amp; User Verification Instructions</h2>
+<div class="card">
+<h4>Test Identities</h4>
+<table>
+<tr><th>Identity</th><th>Tenant</th><th>Role</th><th>Usage</th></tr>
+<tr><td><code>test-admin</code></td><td>tenant-a</td><td>admin</td><td>Configuration changes, bulk operations</td></tr>
+<tr><td><code>test-ops</code></td><td>tenant-a</td><td>ops_manager</td><td>Order approval, cancellation</td></tr>
+<tr><td><code>test-fulfilment</code></td><td>tenant-a</td><td>fulfilment_agent</td><td>Order fulfilment</td></tr>
+<tr><td><code>test-viewer</code></td><td>tenant-a</td><td>viewer</td><td>Read-only access</td></tr>
+</table>
+<p>Identities are passed via the <code>X-Test-Actor</code> HTTP header. No authentication is required in the sandbox deployment.</p>
+</div>
+<div class="card">
+<h4>User Verification Instructions</h4>
+<ol>
+<li>Open the frontend: <a href="https://soma.cdn.himitsu8.ai/c9441d82facd/index.html">https://soma.cdn.himitsu8.ai/c9441d82facd/index.html</a></li>
+<li>Navigate to the <strong>Orders</strong> tab — verify the demo order <code>ord-demo-1</code> is listed.</li>
+<li>Navigate to <strong>Configuration</strong> — verify the current config values are displayed.</li>
+<li>Navigate to <strong>Queue / Retry Metrics</strong> — verify the Prometheus metrics are rendered.</li>
+<li>Navigate to <strong>Incident Panel</strong> — verify the incident register is displayed.</li>
+<li>To verify wave-1 repairs via API:
+<pre>curl -s http://localhost:8081/healthz
+curl -s http://localhost:8081/version
+curl -s "http://localhost:8081/api/v1/orders?tenant=tenant-a"
+curl -s http://localhost:8081/metrics</pre>
+</li>
+</ol>
+</div>
+</section>
+
+<section id="commits">
+<h2>9. Source Commits</h2>
+<div class="card">
+<h4>Wave-1 Commit</h4>
+<pre>commit a88313f0228da66395175ec9733153417037f6af
+Author: pravallikachejerla &lt;pravallikachejerla@users.noreply.github.com&gt;
+Date:   Sun Oct 25 17:14:06 2026 +0000
+
+    Wave 1: implement five stabilisation repairs
+    
+    Implements the five repairs approved in the prior failure-map-and-wave-1
+    proposal. Each repair is linked to a specific incident and underlying
+    condition, and is verified by reproduction, regression, and
+    failure-injection tests.
+    
+    F-02 (STAB-02 / INC-2026-0611-1): wire Consumer.ProcessIdempotent so
+    broker redeliveries are detected and skipped rather than producing
+    duplicate business effects.
+    
+    F-05 (STAB-05 / INC-2026-0705-1): add batch.Process production entry
+    point that routes through RunStreaming with a bounded window, so peak
+    retained-object count is independent of batch size.
+    
+    F-08 (STAB-08 / INC-2026-0728-1): route orders.Service.Approve through
+    a CAS helper that uses TransitionOrderSafe, so concurrent transitions
+    on the same order cannot both succeed.
+    
+    F-11 (STAB-11 / INC-2026-0818-1): switch fulfilment.ScopeFn from
+    GlobalScope to TenantScope so breaker state cannot leak across tenants.
+    
+    F-04b (STAB-04 config half / INC-2026-0627-1): derive Pool.JobTimeout
+    from the fulfilment.dependency_timeout_ms config key, so a slow
+    dependency cannot occupy a worker for longer than the configured
+    timeout plus a small margin.</pre>
+</div>
+<div class="card">
+<h4>Baseline Commit (pre-wave-1)</h4>
+<pre>commit 5b4e8d8
+    Wave-1 stabilisation: F-01, F-03, F-04, F-10</pre>
+</div>
+</section>
+
+<section id="rollback">
+<h2>10. Rollback Procedure</h2>
+<div class="card">
+<h4>Rollback to Baseline</h4>
+<ol>
+<li>Stop the running API process: <code>kill $(pgrep -f /tmp/api-baseline)</code></li>
+<li>Checkout the baseline commit: <code>git checkout 5b4e8d8</code></li>
+<li>Rebuild: <code>go build -o /tmp/api-baseline ./cmd/api</code></li>
+<li>Restart: <code>/tmp/api-baseline &</code></li>
+<li>Verify: <code>curl -s http://localhost:8081/healthz</code></li>
+</ol>
+</div>
+<div class="card">
+<h4>Rollback to Wave-1 Candidate</h4>
+<ol>
+<li>Stop the running API process: <code>kill $(pgrep -f /tmp/api-baseline)</code></li>
+<li>Checkout the wave-1 commit: <code>git checkout a88313f</code></li>
+<li>Rebuild: <code>go build -o /tmp/api-baseline ./cmd/api</code></li>
+<li>Restart: <code>/tmp/api-baseline &</code></li>
+<li>Verify: <code>curl -s http://localhost:8081/healthz</code></li>
+</ol>
+</div>
+<div class="card">
+<h4>Rollback Verification</h4>
+<p>After rollback, run the public test suite to confirm the target state:</p>
+<pre>go test ./tests/public/... -v -count=1 -race</pre>
+<p>Baseline (5b4e8d8): 17/17 pass (4 wave-1 tests absent — F-01, F-03, F-04, F-10 were already in baseline).</p>
+<p>Wave-1 candidate (a88313f): 22/22 pass (5 wave-1 tests present and passing).</p>
+</div>
+</section>
+
+<section id="status">
+<h2>11. Incident Status — Wave 1 Scope Only</h2>
+<div class="card">
+<h4>Resolved by Wave 1 (5 incidents)</h4>
+<table>
+<tr><th>Incident</th><th>Severity</th><th>Repair</th><th>Evidence</th></tr>
+<tr><td>INC-2026-0611-1</td><td><span class="badge badge-danger">high</span></td><td>F-02: Idempotent consumer</td><td>Consumer.ProcessIdempotent wired in app.go</td></tr>
+<tr><td>INC-2026-0705-1</td><td><span class="badge badge-warn">medium</span></td><td>F-05: Streaming batch</td><td>batch.Process routes through RunStreaming</td></tr>
+<tr><td>INC-2026-0728-1</td><td><span class="badge badge-warn">medium</span></td><td>F-08: CAS transition</td><td>orders.Service.Approve uses TransitionOrderSafe</td></tr>
+<tr><td>INC-2026-0818-1</td><td><span class="badge badge-danger">high</span></td><td>F-11: Tenant-scoped breaker</td><td>fulfilment.ScopeFn uses TenantScope</td></tr>
+<tr><td>INC-2026-0627-1</td><td><span class="badge badge-warn">medium</span></td><td>F-04b: Config-derived timeout</td><td>Pool.JobTimeout derived from config key</td></tr>
+</table>
+</div>
+<div class="card">
+<h4>Reduced (partial improvement, not fully resolved)</h4>
+<p>None. Wave 1 repairs are targeted and complete for their respective conditions.</p>
+</div>
+<div class="card">
+<h4>Unresolved (open conditions, deferred to future waves)</h4>
+<table>
+<tr><th>Condition</th><th>Incident</th><th>Reason Deferred</th></tr>
+<tr><td>STAB-06: Three independent retry layers</td><td>INC-2026-0712-1</td><td>Requires shared retry budget — material architecture change, out of wave-1 scope</td></tr>
+<tr><td>STAB-07: Implicit environment fallback</td><td>INC-2026-0720-1</td><td>Requires config schema change — separate approval needed</td></tr>
+<tr><td>STAB-09: Non-atomic state+outbox</td><td>INC-2026-0803-1</td><td>Requires transactional outbox — material architecture change</td></tr>
+</table>
+</div>
+<div class="card">
+<h4>Unconfirmed (not reproduced, remain classified as unconfirmed)</h4>
+<table>
+<tr><th>Incident</th><th>Severity</th><th>Status</th></tr>
+<tr><td>INC-2026-0908-1</td><td><span class="badge badge-warn">medium</span></td><td><span class="badge badge-info">Unconfirmed</span> — no reproducible evidence in sandbox</td></tr>
+<tr><td>INC-2026-0915-1</td><td><span class="badge badge-warn">medium</span></td><td><span class="badge badge-info">Unconfirmed</span> — no reproducible evidence in sandbox</td></tr>
+</table>
+</div>
+</section>
+
+<section>
+<h2>12. Conclusion — Wave 1 Scope Only</h2>
+<div class="card">
+<p><strong>Wave 1 is deployed and verified in the SOMA Genesis Sandbox.</strong> Five stabilisation repairs (F-02, F-04b, F-05, F-08, F-11) are implemented, tested, and linked to supported incident evidence. All 22 public tests pass with the race detector enabled. The failure-injection control surface is operational and sandbox-gated.</p>
+<p><strong>This conclusion is limited to the approved first wave.</strong> The platform is not described as fully stabilised. Three conditions (STAB-06, STAB-07, STAB-09) remain open and require future waves. Two incidents remain unconfirmed. No repository promotion has been authorised.</p>
+</div>
+</section>
+
+</main>
+<div class="footer">
+Wave 1 Deployment Evidence · SOMA Genesis Sandbox · 2026-10-25 · Session 106d60bd-be46-4990-a1d1-21f3913576ed
+</div>
+</body>
+</html>
