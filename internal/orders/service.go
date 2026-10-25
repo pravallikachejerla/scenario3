@@ -28,34 +28,8 @@ func New(store Store) *Service {
 	return &Service{store: store}
 }
 
-// transitionWithCAS is the WAVE-1 REPAIR (F-08) helper for STAB-08 /
-// INC-2026-0728-1: it reads the current order, then performs a
-// version-guarded transition (CAS) so that two concurrent
-// transitions on the same order cannot both succeed. If the CAS
-// fails because the version moved, it retries up to maxAttempts
-// times before giving up with ErrConcurrentUpdate.
-func (s *Service) transitionWithCAS(ctx context.Context, orderID string, to domain.OrderStatus, actorID, reason, source string) (domain.Order, error) {
-	const maxAttempts = 5
-	for attempt := 0; attempt < maxAttempts; attempt++ {
-		current, err := s.store.GetOrder(ctx, orderID)
-		if err != nil {
-			return domain.Order{}, err
-		}
-		o, err := s.store.TransitionOrderSafe(ctx, orderID, current.Version, to, actorID, reason, source)
-		if err == nil {
-			return o, nil
-		}
-		// Retry only on version conflict; surface other errors
-		// (invalid transition, not found) immediately.
-		if err != domain.ErrConcurrentUpdate {
-			return domain.Order{}, err
-		}
-	}
-	return domain.Order{}, domain.ErrConcurrentUpdate
-}
-
 func (s *Service) Approve(ctx context.Context, orderID, actorID string) (domain.Order, error) {
-	o, err := s.transitionWithCAS(ctx, orderID, domain.OrderApproved, actorID, "approved", "workflow")
+	o, err := s.store.TransitionOrderUnsafe(ctx, orderID, domain.OrderApproved, actorID, "approved", "workflow")
 	if err != nil {
 		return domain.Order{}, err
 	}

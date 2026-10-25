@@ -1,0 +1,9 @@
+{
+  "name": "scenario-3-failure-map-report",
+  "version": "0.1.0",
+  "scripts": {
+    "start": "cd site && python3 -m http.server ${PORT:-3000}",
+    "build": "echo static report, no build step",
+    "dev": "cd site && python3 -m http.server ${PORT:-3000}"
+  }
+}
