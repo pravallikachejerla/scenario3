@@ -1,0 +1,9 @@
+ cmd/api/main.go                      |   9 +++
+ frontend/src/App.tsx                 |   2 +
+ frontend/src/pages/Wave1Evidence.tsx | 143 +++++++++++++++++++++++++++++++++++
+ internal/application/app.go          |   5 ++
+ internal/events/idempotent.go        | 103 +++++++++++++++++++++++++
+ internal/httpapi/server.go           |  69 +++++++++++++++++
+ internal/storage/memory.go           |  43 +++++++++++
+ tests/public/wave1_repair_test.go    |  70 +++++++++++++++++
+ 8 files changed, 444 insertions(+)

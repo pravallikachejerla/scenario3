@@ -14,6 +14,7 @@ import (
 	"github.com/soma-genesis/scenario-3-order-stability/internal/application"
 	"github.com/soma-genesis/scenario-3-order-stability/internal/configuration"
 	"github.com/soma-genesis/scenario-3-order-stability/internal/domain"
+	"github.com/soma-genesis/scenario-3-order-stability/internal/events"
 	"github.com/soma-genesis/scenario-3-order-stability/internal/httpapi"
 	"github.com/soma-genesis/scenario-3-order-stability/internal/observability"
 	"github.com/soma-genesis/scenario-3-order-stability/internal/storage"
@@ -216,5 +217,74 @@ func TestWave1_F10_CallerContextCancellation(t *testing.T) {
 		}
 	case <-time.After(3 * time.Second):
 		t.Fatal("F-10: job did not return within 3s of caller cancellation")
+	}
+}
+
+// --- F-02: Idempotent consumer (STAB-02) ---------------------------------
+
+func TestWave1_F02_IdempotentConsumer_Redelivery(t *testing.T) {
+	store := storage.NewMemoryStore()
+
+	// Baseline path: Consumer.Process applies the effect
+	// unconditionally. A redelivery of the same EventID therefore
+	// applies the effect twice. This is the STAB-02 condition.
+	baseline := events.NewConsumer(store, func(ev events.InboundEvent) error {
+		store.IncEffectCount(ev.EventID)
+		return nil
+	})
+	ev := events.InboundEvent{EventID: "evt-redelivery-1", OrderID: "ord-1", Type: "order.fulfilled"}
+	if err := baseline.Process(ev); err != nil {
+		t.Fatalf("baseline first delivery: %v", err)
+	}
+	if err := baseline.Process(ev); err != nil {
+		t.Fatalf("baseline redelivery: %v", err)
+	}
+	if got := store.EffectCount("evt-redelivery-1"); got != 2 {
+		t.Fatalf("baseline: expected effect_count=2 (STAB-02 reproduced), got %d", got)
+	}
+
+	// First-wave (F-02) path: IdempotentConsumer.Process checks
+	// HasConsumed before applying the effect. A redelivery of the
+	// same EventID is detected and skipped.
+	store2 := storage.NewMemoryStore()
+	candidate := events.NewIdempotentConsumer(store2, func(ev events.InboundEvent) error {
+		store2.IncEffectCount(ev.EventID)
+		return nil
+	})
+	ev2 := events.InboundEvent{EventID: "evt-redelivery-2", OrderID: "ord-2", Type: "order.fulfilled"}
+	if err := candidate.Process(ev2); err != nil {
+		t.Fatalf("candidate first delivery: %v", err)
+	}
+	if err := candidate.Process(ev2); err != nil {
+		t.Fatalf("candidate redelivery: %v", err)
+	}
+	if got := store2.EffectCount("evt-redelivery-2"); got != 1 {
+		t.Fatalf("candidate: expected effect_count=1 (F-02 applied), got %d", got)
+	}
+}
+
+func TestWave1_F02_IdempotentConsumer_ConcurrentRedelivery(t *testing.T) {
+	// Failure-injection test: 50 concurrent goroutines all
+	// delivering the same EventID. The candidate must apply the
+	// effect exactly once; the baseline would apply it 50 times.
+	store := storage.NewMemoryStore()
+	candidate := events.NewIdempotentConsumer(store, func(ev events.InboundEvent) error {
+		store.IncEffectCount(ev.EventID)
+		return nil
+	})
+	ev := events.InboundEvent{EventID: "evt-concurrent-1", OrderID: "ord-3", Type: "order.fulfilled"}
+
+	var wg sync.WaitGroup
+	for i := 0; i < 50; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			_ = candidate.Process(ev)
+		}()
+	}
+	wg.Wait()
+
+	if got := store.EffectCount("evt-concurrent-1"); got != 1 {
+		t.Fatalf("concurrent redelivery: expected effect_count=1, got %d", got)
 	}
 }

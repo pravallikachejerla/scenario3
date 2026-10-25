@@ -38,6 +38,8 @@ type MemoryStore struct {
 	fulfilments map[string]*domain.FulfilmentRequest
 	outbox    []*domain.OutboxEvent
 	consumed  map[string]domain.ConsumedEvent // key: idempotency key
+	effectCounters map[string]int // key: eventID, test/evidence helper for F-02
+	baselineEffectCounters map[string]int // key: eventID, always incremented on delivery
 	configs   map[string]*domain.ConfigVersion // key: tenant/key
 	audits    []domain.AuditEvent
 	depCalls  []domain.DependencyCallRecord
@@ -55,6 +57,8 @@ func NewMemoryStore() *MemoryStore {
 		reservations: map[string]*domain.InventoryReservation{},
 		fulfilments:  map[string]*domain.FulfilmentRequest{},
 		consumed:     map[string]domain.ConsumedEvent{},
+		effectCounters: map[string]int{},
+		baselineEffectCounters: map[string]int{},
 		configs:      map[string]*domain.ConfigVersion{},
 		batchJobs:    map[string]*domain.BatchJob{},
 		locker:       NewKeyedLocker(),
@@ -383,6 +387,45 @@ func (m *MemoryStore) MarkConsumed(rec domain.ConsumedEvent) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.consumed[rec.IdempotencyKey] = rec
+}
+
+// EffectCount returns how many times the effect was applied for
+// eventID. It is a test/evidence helper for F-02 (STAB-02) and is
+// only meaningful when the consumer is wired through the
+// idempotent path that increments this counter.
+func (m *MemoryStore) EffectCount(eventID string) int {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	return m.effectCounters[eventID]
+}
+
+// IncEffectCount is the side-counter increment used by the
+// first-wave idempotent consumer. It is exported so the consumer
+// package can call it without leaking the field.
+func (m *MemoryStore) IncEffectCount(eventID string) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.effectCounters[eventID]++
+}
+
+// BaselineEffectCount tracks how many times the non-idempotent
+// (baseline) path would have applied the effect for eventID. It
+// is always incremented on every delivery, regardless of whether
+// the idempotent consumer skipped the redelivery. This lets the
+// baseline-vs-candidate comparison be observed from a single
+// binary: the candidate's effect_count stays at 1 across
+// redeliveries while baseline_effect_count grows.
+func (m *MemoryStore) BaselineEffectCount(eventID string) int {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	return m.baselineEffectCounters[eventID]
+}
+
+// IncBaselineEffectCount increments the baseline counter.
+func (m *MemoryStore) IncBaselineEffectCount(eventID string) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.baselineEffectCounters[eventID]++
 }
 
 // --- configuration ---------------------------------------------------------
